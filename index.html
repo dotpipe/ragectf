@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CTF Chess Game</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div id="game-container">
         <h1>CTF Chess</h1>
@@ -25,6 +27,8 @@
         </div>
     </div>
     <script src="ctfchess.js"></script>
+    <script src="movecache.js"></script>
+    <script src="usermovecache.js"></script>
     <script src="ctfbot.js"></script>
     <script>
         let game, bot;
@@ -52,15 +56,26 @@
             const cells = document.querySelectorAll('#chessboard td');
             cells.forEach(cell => {
                 cell.addEventListener('click', () => {
-                    if (mode === 'bot' || game.currentPlayer === 'White') {
-                        game.validate_move(cell);
+                    if (!game.selectedPiece) {
+                        game.selectedPiece = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
+                    }
+                    else if (game.selectedPiece && !game.moveTo) {
+                        game.moveTo = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
+                    }
+                    if (game.selectedPiece && game.moveTo && game.validate_move(cell.dataset.row, cell.dataset.col)) {
+                        game.makeMove();
+                        game.print_board();
                         updateGameInfo();
                         if (mode === 'bot' && game.currentPlayer === 'Black') {
                             setTimeout(() => {
                                 const botMove = bot.makeMove();
-                                game.makeMove(botMove.from, botMove.to);
+                                game.selectedPiece = { row: botMove.from.row, col: botMove.from.col };
+                                game.moveTo = { row: botMove.to.row, col: botMove.to.col };
+                                game.makeMove();
                                 game.print_board();
                                 updateGameInfo();
+                                game.selectedPiece = null;
+                                game.moveTo = null;
                             }, 500);
                         }
                     }
@@ -88,4 +103,5 @@
         }
     </script>
 </body>
+
 </html>

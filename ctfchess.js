@@ -4,13 +4,15 @@ class CTFChess {
         this.currentPlayer = 'White';
         this.flags = {
             'White': { position: [7, 4], captured: false },
-            'Black': { position: [0, 4], captured: false }
+            'Black': { position: [0, 3], captured: false }
         };
         this.baseStations = {
             'White': [7, 3],
-            'Black': [0, 3]
+            'Black': [0, 4]
         };
         this.score = { 'White': 0, 'Black': 0 };
+        this.selectedPiece = null;
+        this.moveTo = null;
     }
 
     initializeBoard() {
@@ -19,9 +21,9 @@ class CTFChess {
         // Set up pieces
         const setupRow = (row, color) => {
             board[row] = [
-                { type: 'R', color }, { type: 'N', color }, { type: 'B', color },
-                { type: 'T', color }, { type: 'F', color }, { type: 'B', color },
-                { type: 'N', color }, { type: 'R', color }
+                { type: 'R', color: color }, { type: 'N', color: color }, { type: 'B', color: color },
+                { type: 'T', color: color }, { type: 'F', color: color }, { type: 'B', color: color },
+                { type: 'N', color: color }, { type: 'R', color: color }
             ];
         };
     
@@ -41,22 +43,23 @@ class CTFChess {
         return board;
     }
     
-    isValidTurretMove(from, to) {
-        const rowDiff = Math.abs(to.row - from.row);
-        const colDiff = Math.abs(to.col - from.col);
+    isValidTurretMove() {
+        const rowDiff = Math.abs(to.row - this.selectedPiece.row);
+        const colDiff = Math.abs(to.col - this.selectedPiece.col);
         return (rowDiff <= 1 && colDiff <= 1 && (rowDiff + colDiff > 0));
     }
 
-    makeMove(from, to) {
-        if (!this.isValidMove(from, to)) return false;
+    makeMove() {
+        if (!this.isValidMove(this.selectedPiece, this.moveTo)) return false;
 
-        const movingPiece = this.board[from.row][from.col];
-        const targetPiece = this.board[to.row][to.col];
+        // Handle flag capture
+        const movingPiece = this.board[this.selectedPiece.row][this.selectedPiece.col];
+        const targetPiece = this.board[this.moveTo.row][this.moveTo.col];
 
         // Handle turret movement (no shooting allowed)
         if (movingPiece.type === 'T') {
-            this.board[to.row][to.col] = movingPiece;
-            this.board[from.row][from.col] = null;
+            this.board[this.moveTo.row][this.moveTo.col] = movingPiece;
+            this.board[this.selectedPiece.row][this.selectedPiece.col] = null;
             this.currentPlayer = this.getOpponentColor();
             return true;
         }
@@ -68,8 +71,8 @@ class CTFChess {
         }
 
         // Move the piece
-        this.board[to.row][to.col] = movingPiece;
-        this.board[from.row][from.col] = null;
+        this.board[this.moveTo.row][this.moveTo.col] = movingPiece;
+        this.board[this.selectedPiece.row][this.selectedPiece.col] = null;
 
         // Check if flag has been returned to base
         if (movingPiece.hasFlag) {
@@ -81,10 +84,56 @@ class CTFChess {
         }
 
         // Handle turret shooting
-        this.handleTurretShoot(to);
-
+        this.handleTurretShoot(this.moveTo);
         this.currentPlayer = this.getOpponentColor();
         return true;
+    }
+
+    validate_move(row, col) {
+        this.moveTo = { row: row, col: col };
+        
+        if (this.selectedPiece) {
+            if (this.makeMove()) {
+                return true;
+            }
+        } else {
+            console.log(row, col);
+            const piece = this.board[row][col];
+            if (piece && piece.color === this.currentPlayer) {
+                this.moveTo = { row: row, col: col };
+                this.selectedPiece = { row: this.moveTo.row, col: this.moveTo.col };
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    print_board() {
+        const chessboard = document.getElementById('chessboard');
+        chessboard.innerHTML = '';
+        for (let row = 0; row < 8; row++) {
+            const tr = document.createElement('tr');
+            for (let col = 0; col < 8; col++) {
+                const td = document.createElement('td');
+                td.dataset.row = row;
+                td.dataset.col = col;
+                const piece = this.board[row][col];
+                if (piece) {
+                    td.textContent = this.getPieceSymbol(piece);
+                    td.classList.add(piece.color.toLowerCase());
+                }
+                tr.appendChild(td);
+            }
+            chessboard.appendChild(tr);
+        }
+    }
+
+    getPieceSymbol(piece) {
+        const symbols = {
+            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'T': '♜', 'F': '⚑', 'K': '♔'
+        };
+        return symbols[piece.type] || '';
     }
 
     handleTurretShoot(position) {
@@ -130,8 +179,18 @@ class CTFChess {
         return this.currentPlayer === 'White' ? 'Black' : 'White';
     }
 
+
     isValidMove(from, to) {
-        const piece = this.board[from.row][from.col];
+        let piece = null;
+        try {
+            if (from != null && from.row !== undefined && from.col !== undefined) {
+                piece = this.board[from.row][from.col];
+            }
+        } catch (error) {
+            console.error("Error in isValidMove:", error);
+            // return;
+            
+        }
         if (!piece || piece.color !== this.currentPlayer) return false;
 
         switch (piece.type) {
@@ -146,22 +205,25 @@ class CTFChess {
     }
 
     isValidPawnMove(from, to) {
-        const rowDiff = Math.abs(to.row - from.row);
+        const piece = this.board[from.row][from.col];
+        const direction = piece.color === 'White' ? -1 : 1;
+        const rowDiff = to.row - from.row;
         const colDiff = Math.abs(to.col - from.col);
-
+    
         // Move forward one square (no capture)
-        if (colDiff === 0 && rowDiff === 1 && !this.board[to.row][to.col]) {
+        if (Math.abs(colDiff) <= 1 && rowDiff === direction) {
             return true;
         }
-
-        // Capture in any direction, one square away
-        if (rowDiff <= 1 && colDiff <= 1 && (rowDiff + colDiff > 0)) {
+    
+        // Capture diagonally
+        if (colDiff === 1 && rowDiff === direction) {
             const targetPiece = this.board[to.row][to.col];
-            return targetPiece && (targetPiece.color !== this.currentPlayer || this.hasFlag(targetPiece));
+            return targetPiece && (targetPiece.color !== piece.color || this.hasFlag(targetPiece));
         }
-
+    
         return false;
     }
+
 
     isValidRookMove(from, to) {
         if (from.row !== to.row && from.col !== to.col) return false;

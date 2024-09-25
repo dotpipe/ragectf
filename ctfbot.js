@@ -6,14 +6,42 @@ class CTFBot {
     }
 
     makeMove() {
-        const cachedMove = this.moveCache.getBestMove();
-        if (cachedMove && this.game.isValidMove(cachedMove.from, cachedMove.to)) {
-            return cachedMove;
+        const bestMove = this.findbestmove();
+        this.game.selectPiece = bestMove.from;
+        this.game.moveTo = bestMove.to;
+        if (bestMove) {
+            this.game.makeMove(bestMove.from, bestMove.to);
+        }
+        return bestMove;
+    }
+
+
+    findbestmove() {
+        let bestMove = null;
+        let bestScore = -Infinity;
+
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this.game.board[row][col];
+                if (piece && piece.color === this.color) {
+                    for (let toRow = 0; toRow < 8; toRow++) {
+                        for (let toCol = 0; toCol < 8; toCol++) {
+                            const from = { row, col };
+                            const to = { row: toRow, col: toCol };
+                            if (this.game.isValidMove(from, to)) {
+                                const score = this.evaluateMove(from, to);
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    bestMove = { from, to };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        const newMove = this.findBestMove();
-        this.moveCache.addMove(newMove, this.evaluateMove(newMove));
-        return newMove;
+        return bestMove;
     }
 
     getAllPossibleMoves() {
@@ -43,7 +71,6 @@ class CTFBot {
     isFlagReturn(move) {
         const movingPiece = this.game.board[move.from.row][move.from.col];
         if (!movingPiece.hasFlag) return false;
-
         const baseStation = this.game.baseStations[this.game.getOpponentColor()];
         return move.to.row === baseStation[0] && move.to.col === baseStation[1];
     }
@@ -107,5 +134,72 @@ class CTFBot {
             case 'N': case 'P': return 1;
             default: return 0;
         }
+    }
+    
+    evaluateMove(from, to) {
+        const movingPiece = this.game.board[from.row][from.col];
+        const targetPiece = this.game.board[to.row][to.col];
+        let score = 0;
+
+        // Prioritize capturing the opponent's flag
+        if (targetPiece && targetPiece.color !== this.color && targetPiece.type === 'F') {
+            score += 1000;
+        }
+
+        // Prioritize moving towards the opponent's flag
+        const opponentFlagPos = this.game.flags[this.getOpponentColor()].position;
+        const distanceToFlag = Math.abs(to.row - opponentFlagPos[0]) + Math.abs(to.col - opponentFlagPos[1]);
+        score += (14 - distanceToFlag) * 10;
+
+        // Prioritize capturing opponent pieces
+        if (targetPiece && targetPiece.color !== this.color) {
+            score += this.getPieceValue(targetPiece.type);
+        }
+
+        // Prioritize protecting our own flag
+        const ourFlagPos = this.game.flags[this.color].position;
+        if (movingPiece.type === 'T') {
+            const distanceToOurFlag = Math.abs(to.row - ourFlagPos[0]) + Math.abs(to.col - ourFlagPos[1]);
+            score += (7 - distanceToOurFlag) * 5;
+        }
+
+        // Avoid moving into positions where the piece can be captured
+        if (this.isVulnerable(to)) {
+            score -= this.getPieceValue(movingPiece.type);
+        }
+
+        return score;
+    }
+
+    getPieceValue(pieceType) {
+        const values = {
+            'P': 10,
+            'R': 50,
+            'N': 30,
+            'B': 30,
+            'T': 40,
+            'F': 1000,
+            'K': 900
+        };
+        return values[pieceType] || 0;
+    }
+
+    isVulnerable(position) {
+        // Check if the position can be captured by any opponent piece
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this.game.board[row][col];
+                if (piece && piece.color !== this.color) {
+                    if (this.game.isValidMove({row, col}, position)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    getOpponentColor() {
+        return this.color === 'White' ? 'Black' : 'White';
     }
 }

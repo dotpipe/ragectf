@@ -23,8 +23,23 @@ class UserMoveCache {
         this.displaySuggestions();
     }
 
-    evaluateMove(move) {
-        // Implement move evaluation logic
+    getAllPossibleMoves() {
+        const moves = [];
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this.game.board[row][col];
+                if (piece && piece.color === this.color) {
+                    for (let toRow = 0; toRow < 8; toRow++) {
+                        for (let toCol = 0; toCol < 8; toCol++) {
+                            if (this.game.isValidMove({ row, col }, { row: toRow, col: toCol })) {
+                                moves.push({ from: { row, col }, to: { row: toRow, col: toCol } });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return moves;
     }
 
     displaySuggestions() {
@@ -37,6 +52,3 @@ class UserMoveCache {
         });
     }
 }
-
-const userMoveCache = new UserMoveCache(game);
-document.getElementById('buy-suggestions').addEventListener('click', () => userMoveCache.purchaseSuggestions());
