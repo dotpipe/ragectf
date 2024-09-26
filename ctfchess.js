@@ -59,7 +59,7 @@ class CTFChess {
         const movingPiece = this.board[from.row][from.col];
         const targetPiece = this.board[to.row][to.col];
 
-        if (targetPiece.type === 'K' || movingPiece.type === 'K') {
+        if ((targetPiece && targetPiece.type === 'K') || (movingPiece && movingPiece.type === 'K')) {
             console.log("Invalid move: Cannot capture the opponent's safety zone.");
             this.selectedPiece = null;
             this.moveTo = null;
