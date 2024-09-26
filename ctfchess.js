@@ -7,8 +7,8 @@ class CTFChess {
             'Black': { position: [0, 3], captured: false }
         };
         this.baseStations = {
-            'White': [7, 3],
-            'Black': [0, 4]
+            'White': [0, 4],
+            'Black': [7, 3]
         };
         this.score = { 'White': 0, 'Black': 0 };
         this.selectedPiece = null;
@@ -60,6 +60,11 @@ class CTFChess {
         const targetPiece = this.board[to.row][to.col];
 
         if ((targetPiece && targetPiece.type === 'K') || (movingPiece && movingPiece.type === 'K')) {
+            if (this.hasFlag(movingPiece)) {
+                this.score[this.currentPlayer]++;
+                this.resetGame();
+                return false;
+            }
             console.log("Invalid move: Cannot capture the opponent's safety zone.");
             this.selectedPiece = null;
             this.moveTo = null;
@@ -71,12 +76,17 @@ class CTFChess {
             this.flags[targetPiece.color].captured = true;
         }
 
+        if (this.flags[this.currentPlayer].captured) {
+            this.flags[this.currentPlayer].position = null;
+        }
+        
         // Move the piece
         this.board[to.row][to.col] = movingPiece;
         this.board[from.row][from.col] = null;
 
         // Check if flag has been returned to base
-        if (movingPiece.hasFlag) {
+        if (this.board[to.row][to.col].hasFlag) {
+            this.board[to.row][to.col].hasFlag = true;
             const baseStation = this.baseStations[this.getOpponentColor()];
             if (to.row === baseStation[0] && to.col === baseStation[1]) {
                 this.score[this.currentPlayer]++;
@@ -119,6 +129,11 @@ class CTFChess {
                 td.dataset.row = row;
                 td.dataset.col = col;
                 const piece = this.board[row][col];
+                if (row%2 === col%2) {
+                    td.classList.add('white');
+                } else {
+                    td.classList.add('beige');
+                }
                 if (piece) {
                     td.textContent = this.getPieceSymbol(piece, piece.color);
                     td.classList.add(piece.color.toLowerCase());
@@ -130,48 +145,49 @@ class CTFChess {
         }
     }
 
-    handleCellClick(cell) {
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
+    // handleCellClick(cell) {
+    //     const row = parseInt(cell.dataset.row);
+    //     const col = parseInt(cell.dataset.col);
 
-        // Log the click to ensure it is being registered
-        console.log('Cell clicked:', row, col);
+    //     // Log the click to ensure it is being registered
+    //     console.log('Cell clicked:', row, col);
 
-        if (!game.selectedPiece) {
-            const selectedPiece = game.board[row][col];
-            if (selectedPiece && selectedPiece.color === game.currentPlayer) {
-                game.selectedPiece = { row, col };
-                console.log('Selected piece:', selectedPiece);
-            }
-        } else {
-            game.moveTo = { row, col };
-            if (game.isValidMove(game.selectedPiece, game.moveTo)) {
-                game.makeMove(game.selectedPiece, game.moveTo);
-                game.print_board();
-                updateGameInfo();
+    //     if (!game.selectedPiece) {
+    //         const selectedPiece = game.board[row][col];
+    //         if (selectedPiece && selectedPiece.color === game.currentPlayer) {
+    //             game.selectedPiece = { row, col };
+    //             cell.classList.toggle('active');
+    //             console.log('Selected piece:', selectedPiece);
+    //         }
+    //     } else {
+    //         game.moveTo = { row, col };
+    //         if (game.isValidMove(game.selectedPiece, game.moveTo)) {
+    //             game.makeMove(game.selectedPiece, game.moveTo);
+    //             game.print_board();
+    //             updateGameInfo();
 
-                // Reset state for the next move
-                game.selectedPiece = null;
-                game.moveTo = null;
+    //             // Reset state for the next move
+    //             game.selectedPiece = null;
+    //             game.moveTo = null;
 
-                // If playing against the bot, trigger the bot's move
-                if (game.currentPlayer === 'Black') {
-                    setTimeout(() => {
-                        const botMove = bot.makeMove();
-                        game.selectedPiece = botMove.from;
-                        game.moveTo = botMove.to;
-                        game.makeMove(botMove.from, botMove.to);
-                        game.print_board();
-                        updateGameInfo();
+    //             // If playing against the bot, trigger the bot's move
+    //             if (game.currentPlayer === 'Black') {
+    //                 setTimeout(() => {
+    //                     const botMove = bot.makeMove();
+    //                     game.selectedPiece = botMove.from;
+    //                     game.moveTo = botMove.to;
+    //                     game.makeMove(botMove.from, botMove.to);
+    //                     game.print_board();
+    //                     updateGameInfo();
 
-                        // Reset after bot's move
-                        game.selectedPiece = null;
-                        game.moveTo = null;
-                    }, 500);
-                }
-            }
-        }
-    }
+    //                     // Reset after bot's move
+    //                     game.selectedPiece = null;
+    //                     game.moveTo = null;
+    //                 }, 500);
+    //             }
+    //         }
+    //     }
+    // }
 
     getPieceSymbol(piece, color) {
         let symbols = [];

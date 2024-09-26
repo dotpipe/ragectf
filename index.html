@@ -110,7 +110,13 @@
             // Handle move logic
             if (!game.selectedPiece) {
                 game.selectedPiece = { row, col };
-            } else {
+                cell.classList.toggle('active');
+            }
+            else if (game.selectedPiece.row === row && game.selectedPiece.col === col) {
+                game.selectedPiece = null;
+                cell.classList.remove('active');
+            }
+            else {
                 game.moveTo = { row, col };
                 if (game.isValidMove(game.selectedPiece, game.moveTo)) {
                     game.makeMove(game.selectedPiece, game.moveTo);
