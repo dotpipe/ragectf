@@ -44,25 +44,25 @@ button:hover {
     margin: 20px auto;
     border: 2px solid rgba(sienna, 0.5);
     text-align: center;
-    font-size: 24px;
+    font-size: 48px;
     cursor: pointer;
 }
 
 #chessboard .white {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     border: 2px solid rgba(160, 82, 45, 0.25);
     text-align: center;
-    font-size: 24px;
+    font-size: 48px;
     cursor: pointer;
 }
 
 #chessboard .beige {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     text-align: center;
     border: 2px solid rgba(160, 82, 45, 0.25);
-    font-size: 24px;
+    font-size: 48px;
     cursor: pointer;
     background-color: beige;
 }
