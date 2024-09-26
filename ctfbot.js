@@ -51,10 +51,13 @@ class CTFBot {
         let score = 0;
 
         // Prioritize capturing the opponent's flag
-        if (targetPiece && targetPiece.color !== this.color && targetPiece.type === 'F') {
-            score += 1000;
+        if (targetPiece && targetPiece.color !== movingPiece.color && targetPiece.type === 'F') {
+            score += 2000;
         }
 
+        if (movingPiece && this.game.hasFlag(movingPiece) && targetPiece && targetPiece.type === 'K') {
+            score += 3500;
+        }
         // Prioritize moving towards the opponent's flag
         const opponentFlagPos = this.game.flags[this.getOpponentColor()].position;
         const distanceToFlag = Math.abs(to.row - opponentFlagPos[0]) + Math.abs(to.col - opponentFlagPos[1]);
@@ -105,9 +108,7 @@ class CTFBot {
             'R': 50,
             'N': 30,
             'B': 30,
-            'T': 40,
-            'F': 1000,
-            'K': 900
+            'T': 40
         };
         return values[pieceType] || 0;
     }

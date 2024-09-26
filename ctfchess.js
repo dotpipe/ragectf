@@ -7,8 +7,8 @@ class CTFChess {
             'Black': { position: [0, 3], captured: false }
         };
         this.baseStations = {
-            'White': [0, 4],
-            'Black': [7, 3]
+            'White': [7, 4],
+            'Black': [0, 3]
         };
         this.score = { 'White': 0, 'Black': 0 };
         this.selectedPiece = null;
