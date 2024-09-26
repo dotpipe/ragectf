@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CTF Chess Game</title>
     <link rel="stylesheet" href="styles.css">
@@ -32,20 +33,13 @@
     <script src="ctfbot.js"></script>
     <script>
         let game, bot;
-        const playBotButton = document.getElementById('play-bot');
         const playHumanButton = document.getElementById('play-human');
         const chatContainer = document.getElementById('chat-container');
-
+        const playBotButton = document.getElementById('play-bot');
         playBotButton.addEventListener('click', () => {
-            game = new CTFChess();
-            bot = new CTFBot(game, 'Black');
+            game = new CTFChess();  // Initialize the game
+            bot = new CTFBot(game, 'Black');  // Bot plays as Black
             initializeGame('bot');
-        });
-
-        playHumanButton.addEventListener('click', () => {
-            game = new CTFChess();
-            initializeGame('human');
-            chatContainer.style.display = 'block';
         });
 
         function initializeGame(mode) {
@@ -53,34 +47,95 @@
             game.print_board();
             updateGameInfo();
 
-            const cells = document.querySelectorAll('#chessboard td');
-            cells.forEach(cell => {
-                cell.addEventListener('click', () => {
+            // Handle user interactions for making moves
+            document.querySelectorAll('#chessboard td').forEach(cell => {
+                cell.addEventListener('click', (event) => {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+
+                    // Log the click to ensure it is being registered
+                    console.log('Cell clicked:', row, col);
+
                     if (!game.selectedPiece) {
-                        game.selectedPiece = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
-                    }
-                    else if (game.selectedPiece && !game.moveTo) {
-                        game.moveTo = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
-                    }
-                    if (game.selectedPiece && game.moveTo && game.validate_move(cell.dataset.row, cell.dataset.col)) {
-                        game.makeMove();
-                        game.print_board();
-                        updateGameInfo();
-                        if (mode === 'bot' && game.currentPlayer === 'Black') {
-                            setTimeout(() => {
-                                const botMove = bot.makeMove();
-                                game.selectedPiece = { row: botMove.from.row, col: botMove.from.col };
-                                game.moveTo = { row: botMove.to.row, col: botMove.to.col };
-                                game.makeMove();
-                                game.print_board();
-                                updateGameInfo();
-                                game.selectedPiece = null;
-                                game.moveTo = null;
-                            }, 500);
+                        const selectedPiece = game.board[row][col];
+                        if (selectedPiece && selectedPiece.color === game.currentPlayer) {
+                            game.selectedPiece = { row, col };
+                            console.log('Selected piece:', selectedPiece);
+                        }
+                    } else {
+                        game.moveTo = { row, col };
+                        if (game.isValidMove(game.selectedPiece, game.moveTo)) {
+                            game.makeMove(game.selectedPiece, game.moveTo);
+                            game.print_board();
+                            updateGameInfo();
+
+                            // Reset state for the next move
+                            game.selectedPiece = null;
+                            game.moveTo = null;
+
+                            // If playing against the bot, trigger the bot's move
+                            if (game.currentPlayer === 'Black') {
+                                setTimeout(() => {
+                                    const botMove = bot.makeMove();
+                                    game.selectedPiece = botMove.from;
+                                    game.moveTo = botMove.to;
+                                    game.makeMove(botMove.from, botMove.to);
+                                    game.print_board();
+                                    updateGameInfo();
+
+                                    // Reset after bot's move
+                                    game.selectedPiece = null;
+                                    game.moveTo = null;
+                                }, 500);
+                            }
                         }
                     }
                 });
             });
+        }
+
+
+
+        document.querySelectorAll('#chessboard td').forEach(cell => {
+            cell.addEventListener('click', handleCellClick);
+        });
+
+        function handleCellClick(event) {
+            const cell = event.currentTarget;
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+
+            console.log('Click registered:', row, col);
+
+            // Handle move logic
+            if (!game.selectedPiece) {
+                game.selectedPiece = { row, col };
+            } else {
+                game.moveTo = { row, col };
+                if (game.isValidMove(game.selectedPiece, game.moveTo)) {
+                    game.makeMove(game.selectedPiece, game.moveTo);
+                    game.print_board();
+                    updateGameInfo();
+                    game.selectedPiece = null;
+                    game.moveTo = null;
+
+                    // Trigger bot's move if applicable
+                    if (game.currentPlayer === 'Black') {
+                        setTimeout(() => {
+                            const botMove = bot.makeMove();
+                            game.selectedPiece = botMove.from;
+                            game.moveTo = botMove.to;
+                            game.makeMove(botMove.from, botMove.to);
+                            game.print_board();
+                            updateGameInfo();
+
+                            game.selectedPiece = null;
+                            game.moveTo = null;
+                            game.currentPlayer = 'White';  // Switch back to user's turn
+                        }, 500);
+                    }
+                }
+            }
         }
 
         function updateGameInfo() {

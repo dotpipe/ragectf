@@ -17,53 +17,54 @@ class CTFChess {
 
     initializeBoard() {
         let board = Array(8).fill().map(() => Array(8).fill(null));
-        
+
         // Set up pieces
         const setupRow = (row, color) => {
             board[row] = [
-                { type: 'R', color: color }, { type: 'N', color: color }, { type: 'B', color: color },
-                { type: 'T', color: color }, { type: 'F', color: color }, { type: 'B', color: color },
-                { type: 'N', color: color }, { type: 'R', color: color }
+                { type: 'R', color: color, immovable: false }, { type: 'N', color: color, immovable: false }, { type: 'B', color: color, immovable: false },
+                { type: 'K', color: color, immovable: true }, { type: 'F', color: color, immovable: false }, { type: 'B', color: color, immovable: false },
+                { type: 'N', color: color, immovable: false }, { type: 'R', color: color, immovable: false }
             ];
         };
-    
+
         setupRow(0, 'Black');
         setupRow(7, 'White');
-    
+
         // Set up pawns
         for (let i = 0; i < 8; i++) {
             board[1][i] = { type: 'P', color: 'Black' };
             board[6][i] = { type: 'P', color: 'White' };
         }
-    
+
         // Place immovable kings
-        board[2][4] = { type: 'K', color: 'Black', immovable: true };
-        board[5][4] = { type: 'K', color: 'White', immovable: true };
-    
+        // board[2][4] = { type: 'K', color: 'Black', immovable: true };
+        // board[5][4] = { type: 'K', color: 'White', immovable: true };
+
         return board;
     }
-    
+
     isValidTurretMove() {
         const rowDiff = Math.abs(to.row - this.selectedPiece.row);
         const colDiff = Math.abs(to.col - this.selectedPiece.col);
         return (rowDiff <= 1 && colDiff <= 1 && (rowDiff + colDiff > 0));
     }
 
-    makeMove() {
-        if (!this.isValidMove(this.selectedPiece, this.moveTo)) return false;
-
-        // Handle flag capture
-        const movingPiece = this.board[this.selectedPiece.row][this.selectedPiece.col];
-        const targetPiece = this.board[this.moveTo.row][this.moveTo.col];
-
-        // Handle turret movement (no shooting allowed)
-        if (movingPiece.type === 'T') {
-            this.board[this.moveTo.row][this.moveTo.col] = movingPiece;
-            this.board[this.selectedPiece.row][this.selectedPiece.col] = null;
-            this.currentPlayer = this.getOpponentColor();
-            return true;
+    makeMove(from, to) {
+        if (!this.isValidMove(from, to)) {
+            this.selectedPiece = null;
+            this.moveTo = null;
+            return false;
         }
 
+        const movingPiece = this.board[from.row][from.col];
+        const targetPiece = this.board[to.row][to.col];
+
+        if (targetPiece.type === 'K' || movingPiece.type === 'K') {
+            console.log("Invalid move: Cannot capture the opponent's safety zone.");
+            this.selectedPiece = null;
+            this.moveTo = null;
+            return false;
+        }
         // Handle flag capture
         if (targetPiece && this.hasFlag(targetPiece)) {
             movingPiece.hasFlag = true;
@@ -71,8 +72,8 @@ class CTFChess {
         }
 
         // Move the piece
-        this.board[this.moveTo.row][this.moveTo.col] = movingPiece;
-        this.board[this.selectedPiece.row][this.selectedPiece.col] = null;
+        this.board[to.row][to.col] = movingPiece;
+        this.board[from.row][from.col] = null;
 
         // Check if flag has been returned to base
         if (movingPiece.hasFlag) {
@@ -83,15 +84,14 @@ class CTFChess {
             }
         }
 
-        // Handle turret shooting
-        this.handleTurretShoot(this.moveTo);
         this.currentPlayer = this.getOpponentColor();
         return true;
     }
 
+
     validate_move(row, col) {
         this.moveTo = { row: row, col: col };
-        
+
         if (this.selectedPiece) {
             if (this.makeMove()) {
                 return true;
@@ -105,7 +105,7 @@ class CTFChess {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -120,19 +120,69 @@ class CTFChess {
                 td.dataset.col = col;
                 const piece = this.board[row][col];
                 if (piece) {
-                    td.textContent = this.getPieceSymbol(piece);
+                    td.textContent = this.getPieceSymbol(piece, piece.color);
                     td.classList.add(piece.color.toLowerCase());
                 }
+                td.addEventListener('click', handleCellClick);
                 tr.appendChild(td);
             }
             chessboard.appendChild(tr);
         }
     }
 
-    getPieceSymbol(piece) {
-        const symbols = {
-            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'T': '♜', 'F': '⚑', 'K': '♔'
-        };
+    handleCellClick(cell) {
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+
+        // Log the click to ensure it is being registered
+        console.log('Cell clicked:', row, col);
+
+        if (!game.selectedPiece) {
+            const selectedPiece = game.board[row][col];
+            if (selectedPiece && selectedPiece.color === game.currentPlayer) {
+                game.selectedPiece = { row, col };
+                console.log('Selected piece:', selectedPiece);
+            }
+        } else {
+            game.moveTo = { row, col };
+            if (game.isValidMove(game.selectedPiece, game.moveTo)) {
+                game.makeMove(game.selectedPiece, game.moveTo);
+                game.print_board();
+                updateGameInfo();
+
+                // Reset state for the next move
+                game.selectedPiece = null;
+                game.moveTo = null;
+
+                // If playing against the bot, trigger the bot's move
+                if (game.currentPlayer === 'Black') {
+                    setTimeout(() => {
+                        const botMove = bot.makeMove();
+                        game.selectedPiece = botMove.from;
+                        game.moveTo = botMove.to;
+                        game.makeMove(botMove.from, botMove.to);
+                        game.print_board();
+                        updateGameInfo();
+
+                        // Reset after bot's move
+                        game.selectedPiece = null;
+                        game.moveTo = null;
+                    }, 500);
+                }
+            }
+        }
+    }
+
+    getPieceSymbol(piece, color) {
+        let symbols = [];
+        if (color == 'Black')
+            symbols = {
+                'P': '♟', 'R': '♜', 'N': '♞', 'B': '♝', 'T': '♛', 'F': '⚑', 'K': '♚'
+            };
+        else
+            symbols = {
+                'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'T': '♜', 'F': '⚑', 'K': '♔'
+            };
         return symbols[piece.type] || '';
     }
 
@@ -152,7 +202,8 @@ class CTFChess {
                         if (targetPiece.hasFlag) {
                             // Drop the flag
                             this.flags[targetPiece.color].position = [position.row, position.col];
-                            this.flags[targetPiece.color].captured = false;
+                            this.flags[targetPiece.color].captured = true;
+                            this.board[position.row][position.col] = { type: 'F', color: color, immovable: false };
                             targetPiece.hasFlag = false;
                         }
                         // Remove the piece
@@ -181,16 +232,7 @@ class CTFChess {
 
 
     isValidMove(from, to) {
-        let piece = null;
-        try {
-            if (from != null && from.row !== undefined && from.col !== undefined) {
-                piece = this.board[from.row][from.col];
-            }
-        } catch (error) {
-            console.error("Error in isValidMove:", error);
-            // return;
-            
-        }
+        const piece = this.board[from.row][from.col];
         if (!piece || piece.color !== this.currentPlayer) return false;
 
         switch (piece.type) {
@@ -204,25 +246,27 @@ class CTFChess {
         }
     }
 
+
     isValidPawnMove(from, to) {
         const piece = this.board[from.row][from.col];
-        const direction = piece.color === 'White' ? -1 : 1;
         const rowDiff = to.row - from.row;
         const colDiff = Math.abs(to.col - from.col);
-    
-        // Move forward one square (no capture)
-        if (Math.abs(colDiff) <= 1 && rowDiff === direction) {
-            return true;
+
+        // Allow movement in any direction by checking both positive and negative rowDiff
+        // No capture, move one square forward or backward
+        if (Math.abs(colDiff) <= 1 && Math.abs(rowDiff) === 1) {
+            return !this.board[to.row][to.col];  // Allow move if the target square is empty
         }
-    
-        // Capture diagonally
-        if (colDiff === 1 && rowDiff === direction) {
+
+        // Allow capture diagonally in both forward and backward directions
+        if (Math.abs(colDiff) === 1 && Math.abs(rowDiff) === 1) {
             const targetPiece = this.board[to.row][to.col];
             return targetPiece && (targetPiece.color !== piece.color || this.hasFlag(targetPiece));
         }
-    
-        return false;
+
+        return false;  // Return false if the move doesn't meet any valid conditions
     }
+
 
 
     isValidRookMove(from, to) {
