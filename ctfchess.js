@@ -36,9 +36,11 @@ class CTFChess {
             board[6][i] = { type: 'P', color: 'White' };
         }
 
+        var rnd1 = Math.floor(Math.random() * 8);
+        var rnd2 = Math.floor(Math.random() * 8);
         // Place immovable kings
-        // board[2][4] = { type: 'K', color: 'Black', immovable: true };
-        // board[5][4] = { type: 'K', color: 'White', immovable: true };
+        board[3][rnd1] = { type: 'G', color: 'Black', immovable: true };
+        board[4][rnd2] = { type: 'G', color: 'White', immovable: true };
 
         return board;
     }
@@ -145,59 +147,15 @@ class CTFChess {
         }
     }
 
-    // handleCellClick(cell) {
-    //     const row = parseInt(cell.dataset.row);
-    //     const col = parseInt(cell.dataset.col);
-
-    //     // Log the click to ensure it is being registered
-    //     console.log('Cell clicked:', row, col);
-
-    //     if (!game.selectedPiece) {
-    //         const selectedPiece = game.board[row][col];
-    //         if (selectedPiece && selectedPiece.color === game.currentPlayer) {
-    //             game.selectedPiece = { row, col };
-    //             cell.classList.toggle('active');
-    //             console.log('Selected piece:', selectedPiece);
-    //         }
-    //     } else {
-    //         game.moveTo = { row, col };
-    //         if (game.isValidMove(game.selectedPiece, game.moveTo)) {
-    //             game.makeMove(game.selectedPiece, game.moveTo);
-    //             game.print_board();
-    //             updateGameInfo();
-
-    //             // Reset state for the next move
-    //             game.selectedPiece = null;
-    //             game.moveTo = null;
-
-    //             // If playing against the bot, trigger the bot's move
-    //             if (game.currentPlayer === 'Black') {
-    //                 setTimeout(() => {
-    //                     const botMove = bot.makeMove();
-    //                     game.selectedPiece = botMove.from;
-    //                     game.moveTo = botMove.to;
-    //                     game.makeMove(botMove.from, botMove.to);
-    //                     game.print_board();
-    //                     updateGameInfo();
-
-    //                     // Reset after bot's move
-    //                     game.selectedPiece = null;
-    //                     game.moveTo = null;
-    //                 }, 500);
-    //             }
-    //         }
-    //     }
-    // }
-
     getPieceSymbol(piece, color) {
         let symbols = [];
         if (color == 'Black')
             symbols = {
-                'P': '♟', 'R': '♜', 'N': '♞', 'B': '♝', 'T': '♛', 'F': '⚑', 'K': '♚'
+                'P': '♟', 'R': '♜', 'N': '♞', 'B': '♝', 'T': '♛', 'F': '⚑', 'K': '♚', 'G': '🗿'
             };
         else
             symbols = {
-                'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'T': '♜', 'F': '⚑', 'K': '♔'
+                'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'T': '♜', 'F': '⚑', 'K': '♔', 'G': '🪨'
             };
         return symbols[piece.type] || '';
     }
