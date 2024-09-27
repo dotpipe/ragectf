@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CTF Chess Game</title>
     <link rel="stylesheet" href="styles.css">
@@ -12,6 +13,15 @@
 <body>
     <div id="game-container">
         <h1>CTF Chess</h1>
+        <div id="difficulty-selector">
+            <label for="difficulty">Bot Difficulty:</label>
+            <select id="difficulty">
+                <option value="1">Easy</option>
+                <option value="2">Medium</option>
+                <option value="3">Hard</option>
+            </select>
+        </div>
+
         <div id="mode-selection">
             <button id="play-bot">Play Against Bot</button>
             <button id="play-human">Play Against Human</button>
@@ -40,6 +50,13 @@
             game = new CTFChess();  // Initialize the game
             bot = new CTFBot(game, 'Black');  // Bot plays as Black
             initializeGame('bot');
+        });
+
+        const difficultySelector = document.getElementById('difficulty');
+        difficultySelector.addEventListener('change', () => {
+            if (bot) {
+                bot.setDifficulty(parseInt(difficultySelector.value));
+            }
         });
 
         function initializeGame(mode) {
@@ -77,9 +94,17 @@
                             if (game.currentPlayer === 'Black') {
                                 setTimeout(() => {
                                     const botMove = bot.makeMove();
-                                    game.selectedPiece = botMove.from;
-                                    game.moveTo = botMove.to;
-                                    game.makeMove(botMove.from, botMove.to);
+                                    if (botMove) {
+                                        game.selectedPiece = { row: botMove.from.row, col: botMove.from.col };
+                                        game.moveTo = { row: botMove.to.row, col: botMove.to.col };
+                                        game.makeMove();
+                                    } else {
+                                        console.log("Bot couldn't make a move");
+                                    }
+                                    // const botMove = bot.makeMove();
+                                    // game.selectedPiece = botMove.from;
+                                    // game.moveTo = botMove.to;
+                                    // game.makeMove(botMove.from, botMove.to);
                                     game.print_board();
                                     updateGameInfo();
 
@@ -129,11 +154,21 @@
                     if (game.currentPlayer === 'Black') {
                         setTimeout(() => {
                             const botMove = bot.makeMove();
-                            game.selectedPiece = botMove.from;
-                            game.moveTo = botMove.to;
-                            game.makeMove(botMove.from, botMove.to);
-                            game.print_board();
-                            updateGameInfo();
+                            // const botMove = bot.makeMove();
+                            if (botMove) {
+                                game.selectedPiece = botMove.from;
+                                game.moveTo = botMove.to;
+                                game.makeMove(botMove.from, botMove.to);
+                                game.print_board();
+                                updateGameInfo();
+                            } else {
+                                console.log("Bot couldn't make a move");
+                            }
+                            // game.selectedPiece = botMove.from;
+                            // game.moveTo = botMove.to;
+                            // game.makeMove(botMove.from, botMove.to);
+                            // game.print_board();
+                            // updateGameInfo();
 
                             game.selectedPiece = null;
                             game.moveTo = null;

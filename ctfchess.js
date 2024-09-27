@@ -61,6 +61,13 @@ class CTFChess {
         const movingPiece = this.board[from.row][from.col];
         const targetPiece = this.board[to.row][to.col];
 
+        if (targetPiece && this.hasFlag(targetPiece)) {
+            if (targetPiece.color !== this.currentPlayer || this.flags[targetPiece.color].captured) {
+                movingPiece.hasFlag = true;
+                this.flags[targetPiece.color].captured = true;
+            }
+        }
+
         if ((targetPiece && targetPiece.type === 'K') || (movingPiece && movingPiece.type === 'K')) {
             if (this.hasFlag(movingPiece)) {
                 this.score[this.currentPlayer]++;
@@ -81,14 +88,14 @@ class CTFChess {
         if (this.flags[this.currentPlayer].captured) {
             this.flags[this.currentPlayer].position = null;
         }
-        
+
         // Move the piece
         this.board[to.row][to.col] = movingPiece;
         this.board[from.row][from.col] = null;
 
         // Check if flag has been returned to base
-        if (this.board[to.row][to.col].hasFlag) {
-            this.board[to.row][to.col].hasFlag = true;
+        if (movingPiece && movingPiece.hasFlag) {
+            // this.board[to.row][to.col].hasFlag = true;
             const baseStation = this.baseStations[this.getOpponentColor()];
             if (to.row === baseStation[0] && to.col === baseStation[1]) {
                 this.score[this.currentPlayer]++;
@@ -131,14 +138,23 @@ class CTFChess {
                 td.dataset.row = row;
                 td.dataset.col = col;
                 const piece = this.board[row][col];
-                if (row%2 === col%2) {
+                if (row % 2 === col % 2) {
                     td.classList.add('white');
                 } else {
                     td.classList.add('beige');
                 }
                 if (piece) {
-                    td.textContent = this.getPieceSymbol(piece, piece.color);
-                    td.classList.add(piece.color.toLowerCase());
+                    // Check if it's a flag at its origin position
+                    if (piece.type === 'F' &&
+                        ((piece.color === 'White' && row === 7 && col === 4) ||
+                            (piece.color === 'Black' && row === 0 && col === 3))) {
+                        // Flag is at its origin, keep it in position
+                        td.textContent = this.getPieceSymbol(piece, piece.color);
+                        td.classList.add(piece.color.toLowerCase());
+                    } else {
+                        td.textContent = this.getPieceSymbol(piece, piece.color);
+                        td.classList.add(piece.color.toLowerCase());
+                    }
                 }
                 td.addEventListener('click', handleCellClick);
                 tr.appendChild(td);
@@ -146,6 +162,32 @@ class CTFChess {
             chessboard.appendChild(tr);
         }
     }
+
+    // print_board() {
+    //     const chessboard = document.getElementById('chessboard');
+    //     chessboard.innerHTML = '';
+    //     for (let row = 0; row < 8; row++) {
+    //         const tr = document.createElement('tr');
+    //         for (let col = 0; col < 8; col++) {
+    //             const td = document.createElement('td');
+    //             td.dataset.row = row;
+    //             td.dataset.col = col;
+    //             const piece = this.board[row][col];
+    //             if (row%2 === col%2) {
+    //                 td.classList.add('white');
+    //             } else {
+    //                 td.classList.add('beige');
+    //             }
+    //             if (piece) {
+    //                 td.textContent = this.getPieceSymbol(piece, piece.color);
+    //                 td.classList.add(piece.color.toLowerCase());
+    //             }
+    //             td.addEventListener('click', handleCellClick);
+    //             tr.appendChild(td);
+    //         }
+    //         chessboard.appendChild(tr);
+    //     }
+    // }
 
     getPieceSymbol(piece, color) {
         let symbols = [];
@@ -206,6 +248,12 @@ class CTFChess {
 
 
     isValidMove(from, to) {
+        if (!from || !to) return false;
+
+        if (from.row === to.row && from.col === to.col) {
+            return false; // Piece cannot move to its current position
+        }
+        
         const piece = this.board[from.row][from.col];
         if (!piece || piece.color !== this.currentPlayer) return false;
 
