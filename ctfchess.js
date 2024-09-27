@@ -3,7 +3,7 @@ class CTFChess {
         this.board = this.initializeBoard();
         this.currentPlayer = 'White';
         this.flags = {
-            'White': { position: [7, 4], captured: false },
+            'White': { position: [7, 3], captured: false },
             'Black': { position: [0, 3], captured: false }
         };
         this.baseStations = {
@@ -19,7 +19,7 @@ class CTFChess {
         let board = Array(8).fill().map(() => Array(8).fill(null));
 
         // Set up pieces
-        const setupRow = (row, color) => {
+        const setupRowBlack = (row, color) => {
             board[row] = [
                 { type: 'R', color: color, immovable: false }, { type: 'N', color: color, immovable: false }, { type: 'B', color: color, immovable: false },
                 { type: 'K', color: color, immovable: true }, { type: 'F', color: color, immovable: false }, { type: 'B', color: color, immovable: false },
@@ -27,8 +27,16 @@ class CTFChess {
             ];
         };
 
-        setupRow(0, 'Black');
-        setupRow(7, 'White');
+        const setupRowWhite = (row, color) => {
+            board[row] = [
+                { type: 'R', color: color, immovable: false }, { type: 'N', color: color, immovable: false }, { type: 'B', color: color, immovable: false },
+                { type: 'F', color: color, immovable: false }, { type: 'K', color: color, immovable: true }, { type: 'B', color: color, immovable: false },
+                { type: 'N', color: color, immovable: false }, { type: 'R', color: color, immovable: false }
+            ];
+        };
+
+        setupRowBlack(0, 'Black');
+        setupRowWhite(7, 'White');
 
         // Set up pawns
         for (let i = 0; i < 8; i++) {
@@ -61,11 +69,10 @@ class CTFChess {
         const movingPiece = this.board[from.row][from.col];
         const targetPiece = this.board[to.row][to.col];
 
-        if (targetPiece && this.hasFlag(targetPiece)) {
-            if (targetPiece.color !== this.currentPlayer || this.flags[targetPiece.color].captured) {
-                movingPiece.hasFlag = true;
-                this.flags[targetPiece.color].captured = true;
-            }
+        // Handle flag transfer between same color pieces
+        if (targetPiece && targetPiece.color === movingPiece.color && this.hasFlag(targetPiece)) {
+            movingPiece.hasFlag = true;
+            targetPiece.hasFlag = false;
         }
 
         if ((targetPiece && targetPiece.type === 'K') || (movingPiece && movingPiece.type === 'K')) {
@@ -79,14 +86,15 @@ class CTFChess {
             this.moveTo = null;
             return false;
         }
+
+        if (this.flags[this.currentPlayer].captured) {
+            this.flags[this.currentPlayer].position = null;
+        }
+
         // Handle flag capture
         if (targetPiece && this.hasFlag(targetPiece)) {
             movingPiece.hasFlag = true;
             this.flags[targetPiece.color].captured = true;
-        }
-
-        if (this.flags[this.currentPlayer].captured) {
-            this.flags[this.currentPlayer].position = null;
         }
 
         // Move the piece
@@ -94,19 +102,18 @@ class CTFChess {
         this.board[from.row][from.col] = null;
 
         // Check if flag has been returned to base
-        if (movingPiece && movingPiece.hasFlag) {
-            // this.board[to.row][to.col].hasFlag = true;
-            const baseStation = this.baseStations[this.getOpponentColor()];
+        if (movingPiece.hasFlag) {
+            const baseStation = this.baseStations[this.currentPlayer];
             if (to.row === baseStation[0] && to.col === baseStation[1]) {
                 this.score[this.currentPlayer]++;
                 this.resetGame();
             }
         }
 
+        // Always switch turns, even after flag capture
         this.currentPlayer = this.getOpponentColor();
         return true;
     }
-
 
     validate_move(row, col) {
         this.moveTo = { row: row, col: col };
@@ -163,31 +170,6 @@ class CTFChess {
         }
     }
 
-    // print_board() {
-    //     const chessboard = document.getElementById('chessboard');
-    //     chessboard.innerHTML = '';
-    //     for (let row = 0; row < 8; row++) {
-    //         const tr = document.createElement('tr');
-    //         for (let col = 0; col < 8; col++) {
-    //             const td = document.createElement('td');
-    //             td.dataset.row = row;
-    //             td.dataset.col = col;
-    //             const piece = this.board[row][col];
-    //             if (row%2 === col%2) {
-    //                 td.classList.add('white');
-    //             } else {
-    //                 td.classList.add('beige');
-    //             }
-    //             if (piece) {
-    //                 td.textContent = this.getPieceSymbol(piece, piece.color);
-    //                 td.classList.add(piece.color.toLowerCase());
-    //             }
-    //             td.addEventListener('click', handleCellClick);
-    //             tr.appendChild(td);
-    //         }
-    //         chessboard.appendChild(tr);
-    //     }
-    // }
 
     getPieceSymbol(piece, color) {
         let symbols = [];
@@ -253,8 +235,13 @@ class CTFChess {
         if (from.row === to.row && from.col === to.col) {
             return false; // Piece cannot move to its current position
         }
-        
-        const piece = this.board[from.row][from.col];
+        const piece = this.board[from.row] && this.board[from.row][from.col];
+        if (!piece || piece.color !== this.currentPlayer) return false;
+
+        const targetPiece = this.board[to.row] && this.board[to.row][to.col];
+        if (targetPiece && targetPiece.type === 'G') return false;
+
+
         if (!piece || piece.color !== this.currentPlayer) return false;
 
         switch (piece.type) {
