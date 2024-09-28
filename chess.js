@@ -15,7 +15,9 @@ class CTFChess {
 
     setupInitialPieces(board) {
         const setupRow = (row, color) => {
-            const pieces = ['R', 'N', 'B', 'K', 'F', 'B', 'N', 'R'];
+            let pieces = ['R', 'N', 'B', 'K', 'F', 'B', 'N', 'R'];
+            board[row] = pieces.map(type => ({ type, color, immovable: type === 'K' }));
+            pieces = ['R', 'N', 'B', 'W', 'K', 'B', 'N', 'R'];
             board[row] = pieces.map(type => ({ type, color, immovable: type === 'K' }));
         };
 
@@ -43,7 +45,7 @@ class CTFChess {
     initializeFlags() {
         return {
             'White': { position: [7, 3], captured: false },
-            'Black': { position: [0, 3], captured: false }
+            'Black': { position: [0, 4], captured: false }
         };
     }
 
@@ -59,24 +61,31 @@ class CTFChess {
 
         const movingPiece = this.board[from.row][from.col];
         const targetPiece = this.board[to.row][to.col];
-
+    
+        const originalType = movingPiece.type;
         this.handleFlagCapture(movingPiece, targetPiece);
+        this.promotePawn(movingPiece, to);
         this.updateBoard(from, to, movingPiece);
-
-        // Add logging
-        console.log('Move made:', from, 'to', to);
-        console.log('Moving piece:', movingPiece);
-
+        
+        // Ensure the piece type hasn't changed
+        movingPiece.type = originalType;
+    
         if (this.checkFlagReturn(movingPiece, to)) {
-            console.log('Flag returned, incrementing score');
-            this.score[this.currentPlayer]++;
-            // Remove the resetGame call here
-            // this.resetGame();
+            
             return true;
         }
-
+    
         this.switchPlayer();
         return true;
+    }
+
+
+    promotePawn(piece, to) {
+        if (piece.type === 'P' && (to.row == 7 || to.row == 0)) {
+            const promotionPieces = ['N', 'B', 'R'];
+            piece.type = promotionPieces[Math.floor(Math.random() * promotionPieces.length)];
+            this.print_board();
+        }
     }
 
     handleFlagCapture(movingPiece, targetPiece) {
@@ -94,39 +103,55 @@ class CTFChess {
 
     checkFlagReturn(piece, position) {
         if (piece.hasFlag) {
-            const baseStation = this.baseStations[this.currentPlayer];
-            if (position.row === baseStation[0] && position.col === baseStation[1]) {
-                this.score[this.currentPlayer] += 2;  // Double points for returning the flag
+            const baseStation = this.baseStations[piece.color].position;
+            console.log('Checking flag return:', position, 'Base station:', baseStation);
+            if (position.row === baseStation[0] && position.col === baseStation[1] && this.flags[this.getOpponentColor()].captured) {
+                this.score[this.currentPlayer] += 3;
                 piece.hasFlag = false;
-                this.flags[this.getOpponentColor()].captured = false;
+                const opponentColor = this.getOpponentColor();
+                this.flags[opponentColor].captured = false;
+                
+                const flagPosition = this.flags[opponentColor].position;
+                this.board[flagPosition[0]][flagPosition[1]] = { type: 'F', color: opponentColor };
+                this.initializeBaseStations();
+                console.log(`${this.currentPlayer} scored 3 points! Flag returned to original position.`);
                 return true;
             }
         }
         return false;
     }
-
     switchPlayer() {
         this.currentPlayer = this.getOpponentColor();
     }
 
     isValidMove(from, to) {
-        const piece = this.board[from.row][from.col];
-
-        if (from.row === to.row && from.col === to.col) {
-            return false
+        const piece = this.board[from.row]?.[from.col];
+        if (!piece || piece.color !== this.currentPlayer) return false;
+    
+        if (from.row === to.row && from.col === to.col) return false;
+        
+        const targetPiece = this.board[to.row][to.col];
+        if (targetPiece && targetPiece.immovable && targetPiece.type !== 'K') return false;
+    
+        // Allow flag carriers to move towards their base station
+        if (piece.hasFlag) {
+            const baseStation = this.baseStations[piece.color].position;
+            if (to.row === baseStation[0] && to.col === baseStation[1]) {
+                this.score[this.currentPlayer] += 3;
+                piece.hasFlag = false;
+                this.initializeFlags();
+                return true;
+            }
         }
-
+    
         const moveValidators = {
             'P': this.isValidPawnMove,
             'R': this.isValidRookMove,
             'N': this.isValidKnightMove,
-            'B': this.isValidBishopMove
+            'B': this.isValidBishopMove,
+            'T': this.isValidTurretMove
         };
-        
-        const targetPiece = this.board[to.row][to.col];
-        if (targetPiece && targetPiece.immovable) return false;
-        console.log(piece)
-        if (piece && (piece.type in moveValidators))
+    
         return moveValidators[piece.type]?.call(this, from, to) ?? false;
     }
 

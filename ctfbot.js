@@ -1,10 +1,14 @@
 class CTFBot {
-    constructor(game, color) {
+    constructor(game, color, ai = false) {
         this.game = game;
+        this.ai = ai;
         this.color = color;
     }
 
     makeMove() {
+        if (this.ai != false) {
+            return this.ai.makeMove();
+        }   
         const bestMove = this.findbestmove();
         if (bestMove) {
             // Use the CTFChess makeMove method to execute the move

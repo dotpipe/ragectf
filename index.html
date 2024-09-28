@@ -25,9 +25,12 @@
     <script src="chess.js"></script>
     <script src="ctfbot.js"></script>
     <script src="movecache.js"></script>
+    <script src="ctfai.js"></script>
+    
     <script>
         const game = new CTFChess();
-        const bot = new CTFBot(game, 'Black', 2);
+        const ai = new CTFAI(game, 'Black');
+        const bot = new CTFBot(game, 'Black', ai);
 
         function handleCellClick(event) {
             const row = parseInt(event.target.dataset.row);
