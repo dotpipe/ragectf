@@ -1,26 +1,23 @@
 class MoveCache {
-    constructor(maxSize = 20) {
-        this.cache = [];
-        this.maxSize = maxSize;
+    constructor() {
+        this.cache = new Map();
     }
 
-    addMove(move, score) {
-        this.cache.push({move, score});
-        this.cache.sort((a, b) => b.score - a.score);
-        if (this.cache.length > this.maxSize) {
-            this.cache.pop();
-        }
+    getKey(board, color) {
+        return board.map(row => row.map(piece => piece ? `${piece.type}${piece.color[0]}` : '--').join('')).join('|') + color;
     }
 
-    getBestMove() {
-        return this.cache.length > 0 ? this.cache[0].move : null;
+    set(board, color, moves) {
+        const key = this.getKey(board, color);
+        this.cache.set(key, moves);
     }
 
-    updateScores(evaluateFunction) {
-        this.cache.forEach(item => {
-            item.score = evaluateFunction(item.move);
-        });
-        this.cache = this.cache.filter(item => item.score > 0);
-        this.cache.sort((a, b) => b.score - a.score);
+    get(board, color) {
+        const key = this.getKey(board, color);
+        return this.cache.get(key);
+    }
+
+    clear() {
+        this.cache.clear();
     }
 }

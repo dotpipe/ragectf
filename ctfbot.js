@@ -46,43 +46,58 @@ class CTFBot {
     }
 
     evaluateMove(from, to) {
+        
+        // Double the evaluation points for pieces carrying the flag
         const movingPiece = this.game.board[from.row][from.col];
         const targetPiece = this.game.board[to.row][to.col];
         let score = 0;
+    
+        if (movingPiece.hasFlag) {
+            score += 10000;  // Very high base score for flag carrier moves
+    
+            // Additional score for moving towards base
+            const basePos = this.game.baseStations[this.color];
+            const currentDistanceToBase = Math.abs(from.row - basePos[0]) + Math.abs(from.col - basePos[1]);
+            const newDistanceToBase = Math.abs(to.row - basePos[0]) + Math.abs(to.col - basePos[1]);
+            
+            if (newDistanceToBase < currentDistanceToBase) {
+                score += 5000;  // Bonus for moving closer to base
+                return score;
+            }
+        }
 
         // Prioritize capturing the opponent's flag
-        if (targetPiece && targetPiece.color !== movingPiece.color && targetPiece.type === 'F') {
-            score += 2000;
+        // Significantly increase the priority of capturing the flag
+        if (targetPiece && targetPiece.type === 'F' && targetPiece.color !== this.color) {
+            score += 2000;  // Doubled from previous value
         }
 
-        if (movingPiece && this.game.hasFlag(movingPiece) && targetPiece && targetPiece.type === 'K') {
-            score += 3500;
-        }
-        // Prioritize moving towards the opponent's flag
-        const opponentFlagPos = (this.game.flags[this.getOpponentColor()].position) ? this.game.flags[this.getOpponentColor()].position : this.game.defaultFlags[this.getOpponentColor()].position;
+        // Increase priority of moving towards the opponent's flag
+        const opponentFlagPos = this.game.flags[this.getOpponentColor()].position;
         const distanceToFlag = Math.abs(to.row - opponentFlagPos[0]) + Math.abs(to.col - opponentFlagPos[1]);
-        score += (14 - distanceToFlag) * 10;
+        score += (14 - distanceToFlag) * 20;  // Doubled from previous value
+
+        // Greatly increase priority of returning the flag to base
+        if (movingPiece.hasFlag) {
+            const ourBasePos = this.game.baseStations[this.color];
+            const distanceToBase = Math.abs(to.row - ourBasePos[0]) + Math.abs(to.col - ourBasePos[1]);
+            score += (14 - distanceToBase) * 50;  // Significantly increased
+        }
 
         // Prioritize capturing opponent pieces
         if (targetPiece && targetPiece.color !== this.color) {
             score += this.getPieceValue(targetPiece.type);
         }
 
-        // Prioritize protecting our own flag
-        const ourFlagPos = this.game.flags[this.color].position;
-        if (movingPiece.type === 'T') {
-            const distanceToOurFlag = Math.abs(to.row - ourFlagPos[0]) + Math.abs(to.col - ourFlagPos[1]);
-            score += (7 - distanceToOurFlag) * 5;
-        }
-
-        // Avoid moving into positions where the piece can be captured
-        if (this.isVulnerable(to)) {
-            score -= this.getPieceValue(movingPiece.type);
+        // Double the score again if the piece is returning to base with the flag
+        if (movingPiece.hasFlag) {
+            const ourBasePos = this.game.baseStations[this.color];
+            const distanceToBase = Math.abs(to.row - ourBasePos[0]) + Math.abs(to.col - ourBasePos[1]);
+            score += (14 - distanceToBase) * 20;  // Double the priority for returning to base
         }
 
         return score;
     }
-
     getOpponentColor() {
         return this.color === 'White' ? 'Black' : 'White';
     }
