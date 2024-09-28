@@ -73,7 +73,7 @@ class CTFAI {
             score += this.getPieceValue(targetPiece.type);
         }
 
-        if (targetPiece && targetPiece.type === 'F') {
+        if (targetPiece && (targetPiece.type === 'F' || targetPiece.type === 'W')) {
             score += 2000;
         }
 
@@ -81,7 +81,7 @@ class CTFAI {
     }
 
     getPieceValue(pieceType) {
-        const values = { 'P': 10, 'R': 50, 'N': 30, 'B': 30, 'T': 40, 'F': 1000 };
+        const values = { 'P': 10, 'R': 50, 'N': 30, 'B': 30, 'T': 40, 'F': 1000, 'W': 1000 };
         return values[pieceType] || 0;
     }
 

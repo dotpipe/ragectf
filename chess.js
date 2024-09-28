@@ -16,7 +16,10 @@ class CTFChess {
     setupInitialPieces(board) {
         const setupRow = (row, color) => {
             let pieces = ['R', 'N', 'B', 'K', 'F', 'B', 'N', 'R'];
-            board[row] = pieces.map(type => ({ type, color, immovable: type === 'K' }));
+            if (color === 'White') {
+                board[row] = pieces.map(type => ({ type, color, immovable: type === 'K' }));
+                return;
+            }
             pieces = ['R', 'N', 'B', 'W', 'K', 'B', 'N', 'R'];
             board[row] = pieces.map(type => ({ type, color, immovable: type === 'K' }));
         };
@@ -103,7 +106,7 @@ class CTFChess {
 
     checkFlagReturn(piece, position) {
         if (piece.hasFlag) {
-            const baseStation = this.baseStations[this.currentPlayer].position;
+            const baseStation = this.baseStations[this.currentPlayer];
             console.log('Checking flag return:', position, 'Base station:', baseStation);
             if (position.row === baseStation.position[0] && position.col === baseStation.position[1]) {
                 this.score[this.currentPlayer] += 3;
@@ -112,7 +115,10 @@ class CTFChess {
                 this.flags[opponentColor].captured = false;
                 
                 const flagPosition = this.flags[opponentColor].position;
-                this.board[flagPosition[0]][flagPosition[1]] = { type: 'F', color: opponentColor };
+                if (this.flags[opponentColor].captured && opponentColor === 'White') {
+                    this.board[flagPosition[0]][flagPosition[1]] = { type: 'F', color: opponentColor };
+                }
+                else this.board[flagPosition[0]][flagPosition[1]] = { type: 'W', color: opponentColor };
                 
                 console.log(`${this.currentPlayer} scored 3 points! Flag returned to original position.`);
                 return true;
@@ -169,7 +175,7 @@ class CTFChess {
         // Capture diagonally (including flag)
         if (colDiff === 1 && rowDiff === direction) {
             const targetPiece = this.board[to.row][to.col];
-            if (targetPiece && (targetPiece.color !== piece.color || targetPiece.type === 'F')) {
+            if (targetPiece && (targetPiece.color !== piece.color || (targetPiece.type === 'F' || piece.type === 'W'))) {
                 return true;
             }
         }
@@ -232,7 +238,7 @@ class CTFChess {
     }
 
     hasFlag(piece) {
-        return piece.type === 'F' || piece.hasFlag;
+        return piece.type === 'F' || piece.type === 'W' || piece.hasFlag;
     }
 
     getOpponentColor() {
@@ -248,7 +254,7 @@ class CTFChess {
         let symbols = [];
         if (color == 'Black')
             symbols = {
-                'P': '♟', 'R': '♜', 'N': '♞', 'B': '♝', 'T': '♛', 'F': '⚑', 'K': '♚', 'G': '🗿'
+                'P': '♟', 'R': '♜', 'N': '♞', 'B': '♝', 'T': '♛', 'W': '⚑', 'K': '♚', 'G': '🗿'
             };
         else
             symbols = {

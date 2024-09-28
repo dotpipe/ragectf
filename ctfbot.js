@@ -72,8 +72,11 @@ class CTFBot {
 
         // Prioritize capturing the opponent's flag
         // Significantly increase the priority of capturing the flag
-        if (targetPiece && targetPiece.type === 'F' && targetPiece.color !== this.color) {
+        if (targetPiece && (targetPiece.type === 'W' || targetPiece.type === 'F') && targetPiece.color !== this.color) {
             score += 2000;  // Doubled from previous value
+        }
+        else if (targetPiece && (targetPiece.type === 'W' || targetPiece.type === 'F') && targetPiece.color === this.color) {
+            score += 1000;  // Doubled from previous value
         }
 
         // Increase priority of moving towards the opponent's flag
