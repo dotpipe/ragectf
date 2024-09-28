@@ -3,200 +3,67 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CTF Chess Game</title>
+    <title>CTF Chess</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <div id="game-container">
         <h1>CTF Chess</h1>
-        <div id="difficulty-selector">
-            <label for="difficulty">Bot Difficulty:</label>
-            <select id="difficulty">
-                <option value="1">Easy</option>
-                <option value="2">Medium</option>
-                <option value="3">Hard</option>
-            </select>
+        <div id="score-display">
+            <span>White: <span id="white-score">0</span></span>
+            <span>Black: <span id="black-score">0</span></span>
         </div>
-
-        <div id="mode-selection">
-            <button id="play-bot">Play Against Bot</button>
-            <button id="play-human">Play Against Human</button>
-        </div>
-        <div id="chessboard"></div>
-        <div id="game-info">
-            <p>Current Player: <span id="current-player"></span></p>
-            <p>Score: White <span id="white-score">0</span> - Black <span id="black-score">0</span></p>
-        </div>
-        <div id="chat-container" style="display: none;">
-            <div id="chat-messages"></div>
-            <input type="text" id="chat-input" placeholder="Type a message...">
-            <button id="send-chat">Send</button>
+        <table id="chessboard"></table>
+        <div id="controls">
+            <button id="start-game">Start Game</button>
+            <button id="reset-game">Reset Game</button>
         </div>
     </div>
-    <script src="ctfchess.js"></script>
-    <script src="movecache.js"></script>
-    <script src="usermovecache.js"></script>
+
+    <script src="chess.js"></script>
     <script src="ctfbot.js"></script>
+    <script src="movecache.js"></script>
     <script>
-        let game, bot;
-        const playHumanButton = document.getElementById('play-human');
-        const chatContainer = document.getElementById('chat-container');
-        const playBotButton = document.getElementById('play-bot');
-        playBotButton.addEventListener('click', () => {
-            game = new CTFChess();  // Initialize the game
-            bot = new CTFBot(game, 'Black');  // Bot plays as Black
-            initializeGame('bot');
-        });
-
-        const difficultySelector = document.getElementById('difficulty');
-        difficultySelector.addEventListener('change', () => {
-            if (bot) {
-                bot.setDifficulty(parseInt(difficultySelector.value));
-            }
-        });
-
-        function initializeGame(mode) {
-            document.getElementById('mode-selection').style.display = 'none';
-            game.print_board();
-            updateGameInfo();
-
-            // Handle user interactions for making moves
-            document.querySelectorAll('#chessboard td').forEach(cell => {
-                cell.addEventListener('click', (event) => {
-                    const row = parseInt(cell.dataset.row);
-                    const col = parseInt(cell.dataset.col);
-
-                    // Log the click to ensure it is being registered
-                    console.log('Cell clicked:', row, col);
-
-                    if (!game.selectedPiece) {
-                        const selectedPiece = game.board[row][col];
-                        if (selectedPiece && selectedPiece.color === game.currentPlayer) {
-                            game.selectedPiece = { row, col };
-                            console.log('Selected piece:', selectedPiece);
-                        }
-                    } else {
-                        game.moveTo = { row, col };
-                        if (game.isValidMove(game.selectedPiece, game.moveTo)) {
-                            game.makeMove(game.selectedPiece, game.moveTo);
-                            game.print_board();
-                            updateGameInfo();
-
-                            // Reset state for the next move
-                            game.selectedPiece = null;
-                            game.moveTo = null;
-
-                            // If playing against the bot, trigger the bot's move
-                            if (game.currentPlayer === 'Black') {
-                                setTimeout(() => {
-                                    const botMove = bot.makeMove();
-                                    if (botMove) {
-                                        game.selectedPiece = { row: botMove.from.row, col: botMove.from.col };
-                                        game.moveTo = { row: botMove.to.row, col: botMove.to.col };
-                                        game.makeMove();
-                                    } else {
-                                        console.log("Bot couldn't make a move");
-                                    }
-                                    // const botMove = bot.makeMove();
-                                    // game.selectedPiece = botMove.from;
-                                    // game.moveTo = botMove.to;
-                                    // game.makeMove(botMove.from, botMove.to);
-                                    game.print_board();
-                                    updateGameInfo();
-
-                                    // Reset after bot's move
-                                    game.selectedPiece = null;
-                                    game.moveTo = null;
-                                }, 500);
-                            }
-                        }
-                    }
-                });
-            });
-        }
-
-
-
-        document.querySelectorAll('#chessboard td').forEach(cell => {
-            cell.addEventListener('click', handleCellClick);
-        });
+        const game = new CTFChess();
+        const bot = new CTFBot(game, 'Black', 2);
 
         function handleCellClick(event) {
-            const cell = event.currentTarget;
-            const row = parseInt(cell.dataset.row);
-            const col = parseInt(cell.dataset.col);
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            if (game.validate_move(row, col)) {
+                game.print_board();
+                updateScoreDisplay();
 
-            console.log('Click registered:', row, col);
-
-            // Handle move logic
-            if (!game.selectedPiece) {
-                game.selectedPiece = { row, col };
-                cell.classList.toggle('active');
-            }
-            else if (game.selectedPiece.row === row && game.selectedPiece.col === col) {
-                game.selectedPiece = null;
-                cell.classList.remove('active');
-            }
-            else {
-                game.moveTo = { row, col };
-                if (game.isValidMove(game.selectedPiece, game.moveTo)) {
-                    game.makeMove(game.selectedPiece, game.moveTo);
-                    game.print_board();
-                    updateGameInfo();
-                    game.selectedPiece = null;
-                    game.moveTo = null;
-
-                    // Trigger bot's move if applicable
-                    if (game.currentPlayer === 'Black') {
-                        setTimeout(() => {
-                            const botMove = bot.makeMove();
-                            // const botMove = bot.makeMove();
-                            if (botMove) {
-                                game.selectedPiece = botMove.from;
-                                game.moveTo = botMove.to;
-                                game.makeMove(botMove.from, botMove.to);
-                                game.print_board();
-                                updateGameInfo();
-                            } else {
-                                console.log("Bot couldn't make a move");
-                            }
-                            // game.selectedPiece = botMove.from;
-                            // game.moveTo = botMove.to;
-                            // game.makeMove(botMove.from, botMove.to);
-                            // game.print_board();
-                            // updateGameInfo();
-
-                            game.selectedPiece = null;
-                            game.moveTo = null;
-                            game.currentPlayer = 'White';  // Switch back to user's turn
-                        }, 500);
-                    }
+                if (game.currentPlayer === 'Black') {
+                    setTimeout(() => {
+                        bot.makeMove();
+                        game.print_board();
+                        updateScoreDisplay();
+                    }, 500);
                 }
             }
         }
 
-        function updateGameInfo() {
-            document.getElementById('current-player').textContent = game.currentPlayer;
+        function updateScoreDisplay() {
             document.getElementById('white-score').textContent = game.score.White;
             document.getElementById('black-score').textContent = game.score.Black;
         }
 
-        // Add chat functionality for human vs human mode
-        document.getElementById('send-chat').addEventListener('click', sendChat);
-        function sendChat() {
-            const message = document.getElementById('chat-input').value;
-            if (message.trim()) {
-                const chatMessages = document.getElementById('chat-messages');
-                const messageElement = document.createElement('p');
-                messageElement.textContent = `${game.currentPlayer}: ${message}`;
-                chatMessages.appendChild(messageElement);
-                document.getElementById('chat-input').value = '';
-            }
-        }
+        document.getElementById('start-game').addEventListener('click', () => {
+            game.resetGame();
+            game.print_board();
+            updateScoreDisplay();
+        });
+
+        document.getElementById('reset-game').addEventListener('click', () => {
+            game.resetGame();
+            game.print_board();
+            updateScoreDisplay();
+        });
+
+        game.print_board();
     </script>
 </body>
 

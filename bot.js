@@ -30,30 +30,56 @@ class CTFBot {
         this.depth = depth;
     }
 
+    // findCombinedMoves(depth = this.combinedMoveDepth) {
+    //     if (depth <= 1) return this.findbestmove();
+
+    //     let bestCombination = null;
+    //     let bestScore = -Infinity;
+
+    //     const initialMoves = this.getAllValidMoves();
+
+    //     for (const move of initialMoves) {
+    //         const tempBoard = JSON.parse(JSON.stringify(this.game.board));
+    //         this.game.makeMove(move.from, move.to);
+
+    //         const nextMoves = this.findCombinedMoves(depth - 1);
+    //         const combinedScore = this.evaluateMove(move.from, move.to) +
+    //             nextMoves.reduce((sum, m) => sum + this.evaluateMove(m.from, m.to), 0);
+
+    //         if (combinedScore > bestScore) {
+    //             bestScore = combinedScore;
+    //             bestCombination = [move, ...nextMoves];
+    //         }
+
+    //         this.game.board = tempBoard;
+    //     }
+
+    //     return bestCombination;
+    // }
+
     findCombinedMoves(depth = this.combinedMoveDepth) {
         if (depth <= 1) return [this.findbestmove()];
-
+    
         let bestCombination = null;
         let bestScore = -Infinity;
-
+    
         const initialMoves = this.getAllValidMoves();
-
+    
         for (const move of initialMoves) {
             const tempBoard = JSON.parse(JSON.stringify(this.game.board));
             this.game.makeMove(move.from, move.to);
-
+    
             const nextMoves = this.findCombinedMoves(depth - 1);
             const combinedScore = this.evaluateMove(move.from, move.to) +
-                (nextMoves[0] ? this.evaluateMove(nextMoves[0].from, nextMoves[0].to) : 0);
-
+                (nextMoves ? this.evaluateMove(nextMoves.from, nextMoves.to) : 0);
+    
             if (combinedScore > bestScore) {
                 bestScore = combinedScore;
-                bestCombination = [move, ...(nextMoves[0] ? [nextMoves[0]] : [])];
+                bestCombination = [move, ...nextMoves];
             }
-
+    
             this.game.board = tempBoard;
         }
-
         return bestCombination;
     }
 
@@ -90,8 +116,7 @@ class CTFBot {
             'R': [[-1, 0], [1, 0], [0, -1], [0, 1]],
             'N': [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
             'B': [[-1, -1], [-1, 1], [1, -1], [1, 1]],
-            'T': [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]],
-            'K': [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+            'T': [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
         };
 
         return (directions[piece.type] || []).reduce((validMoves, [dx, dy]) => {
@@ -106,10 +131,11 @@ class CTFBot {
 
     evaluateMove(from, to) {
         let score = 0;
+        if (!from) return false;
         const movingPiece = this.game.board[from.row][from.col];
         const targetPiece = this.game.board[to.row][to.col];
 
-        if (targetPiece && targetPiece.color !== movingPiece.color && targetPiece.type === 'F') {
+        if (targetPiece && movingPiece && targetPiece.color !== movingPiece.color && targetPiece.type === 'F') {
             score += 2000;
         }
 

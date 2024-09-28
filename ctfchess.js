@@ -7,8 +7,8 @@ class CTFChess {
             'Black': { position: [0, 3], captured: false }
         };
         this.baseStations = {
-            'White': [7, 4],
-            'Black': [0, 3]
+            'White': { position: [7, 4], color: 'White' },
+            'Black': { position: [0, 3], color: 'Black' }
         };
         this.score = { 'White': 0, 'Black': 0 };
         this.selectedPiece = null;
@@ -61,79 +61,79 @@ class CTFChess {
 
     makeMove(from, to) {
         if (!this.isValidMove(from, to)) {
-            this.selectedPiece = null;
-            this.moveTo = null;
             return false;
         }
-
+    
         const movingPiece = this.board[from.row][from.col];
         const targetPiece = this.board[to.row][to.col];
-
-        // Handle flag transfer between same color pieces
-        if (targetPiece && targetPiece.color === movingPiece.color && this.hasFlag(targetPiece)) {
-            movingPiece.hasFlag = true;
-            targetPiece.hasFlag = false;
-        }
-
-        if ((targetPiece && targetPiece.type === 'K') || (movingPiece && movingPiece.type === 'K')) {
-            if (this.hasFlag(movingPiece)) {
-                this.score[this.currentPlayer]++;
-                this.resetGame();
-                return false;
-            }
-            console.log("Invalid move: Cannot capture the opponent's safety zone.");
-            this.selectedPiece = null;
-            this.moveTo = null;
-            return false;
-        }
-
-        if (this.flags[this.currentPlayer].captured) {
-            this.flags[this.currentPlayer].position = null;
-        }
-
+    
         // Handle flag capture
         if (targetPiece && this.hasFlag(targetPiece)) {
             movingPiece.hasFlag = true;
             this.flags[targetPiece.color].captured = true;
         }
-
+    
         // Move the piece
         this.board[to.row][to.col] = movingPiece;
         this.board[from.row][from.col] = null;
-
+    
         // Check if flag has been returned to base
         if (movingPiece.hasFlag) {
-            const baseStation = this.baseStations[this.currentPlayer];
-            if (to.row === baseStation[0] && to.col === baseStation[1]) {
+            // const baseStation = this.baseStations[this.currentPlayer];
+            if (targetPiece.type === 'K' && targetPiece.color == this.currentPlayer2) {
                 this.score[this.currentPlayer]++;
+                console.log(`${this.currentPlayer} scored! New score: ${this.score[this.currentPlayer]}`);
                 this.resetGame();
+                return true;
             }
         }
-
-        // Always switch turns, even after flag capture
+    
         this.currentPlayer = this.getOpponentColor();
         return true;
     }
 
-    validate_move(row, col) {
-        this.moveTo = { row: row, col: col };
+    isValidMove(from, to) {
+        const piece = this.board[from.row][from.col];
+        if (!piece || piece.color !== this.currentPlayer) return false;
 
-        if (this.selectedPiece) {
-            if (this.makeMove()) {
-                return true;
-            }
-        } else {
-            console.log(row, col);
-            const piece = this.board[row][col];
-            if (piece && piece.color === this.currentPlayer) {
-                this.moveTo = { row: row, col: col };
-                this.selectedPiece = { row: this.moveTo.row, col: this.moveTo.col };
-                return true;
-            }
+        // Quick check to prevent base ('K') from moving
+        if (piece.immovable === true) return false;
+
+        const targetPiece = this.board[to.row] && this.board[to.row][to.col];
+        if (targetPiece && targetPiece.type === 'G') return false;
+
+        if (targetPiece && targetPiece.type === 'F') return true;
+
+        switch (piece.type) {
+            case 'P': return this.isValidPawnMove(from, to);
+            case 'R': return this.isValidRookMove(from, to);
+            case 'N': return this.isValidKnightMove(from, to);
+            case 'B': return this.isValidBishopMove(from, to);
+            case 'T': return this.isValidTurretMove(from, to);
+            case 'F': return false;
+            default: return false;
         }
-
-        return false;
     }
+
+    // validate_move(row, col) {
+    //     this.moveTo = { row: row, col: col };
+
+    //     if (this.selectedPiece) {
+    //         if (this.makeMove()) {
+    //             return true;
+    //         }
+    //     } else {
+    //         console.log(row, col);
+    //         const piece = this.board[row][col];
+    //         if (piece && piece.color === this.currentPlayer) {
+    //             this.moveTo = { row: row, col: col };
+    //             this.selectedPiece = { row: this.moveTo.row, col: this.moveTo.col };
+    //             return true;
+    //         }
+    //     }
+
+    //     return false;
+    // }
 
     print_board() {
         const chessboard = document.getElementById('chessboard');
@@ -151,17 +151,8 @@ class CTFChess {
                     td.classList.add('beige');
                 }
                 if (piece) {
-                    // Check if it's a flag at its origin position
-                    if (piece.type === 'F' &&
-                        ((piece.color === 'White' && row === 7 && col === 4) ||
-                            (piece.color === 'Black' && row === 0 && col === 3))) {
-                        // Flag is at its origin, keep it in position
-                        td.textContent = this.getPieceSymbol(piece, piece.color);
-                        td.classList.add(piece.color.toLowerCase());
-                    } else {
-                        td.textContent = this.getPieceSymbol(piece, piece.color);
-                        td.classList.add(piece.color.toLowerCase());
-                    }
+                    td.textContent = this.getPieceSymbol(piece, piece.color);
+                    td.classList.add(piece.color.toLowerCase());
                 }
                 td.addEventListener('click', handleCellClick);
                 tr.appendChild(td);
@@ -228,34 +219,6 @@ class CTFChess {
         return this.currentPlayer === 'White' ? 'Black' : 'White';
     }
 
-
-    isValidMove(from, to) {
-        if (!from || !to) return false;
-
-        if (from.row === to.row && from.col === to.col) {
-            return false; // Piece cannot move to its current position
-        }
-        const piece = this.board[from.row] && this.board[from.row][from.col];
-        if (!piece || piece.color !== this.currentPlayer) return false;
-
-        const targetPiece = this.board[to.row] && this.board[to.row][to.col];
-        if (targetPiece && targetPiece.type === 'G') return false;
-
-
-        if (!piece || piece.color !== this.currentPlayer) return false;
-
-        switch (piece.type) {
-            case 'P': return this.isValidPawnMove(from, to);
-            case 'R': return this.isValidRookMove(from, to);
-            case 'N': return this.isValidKnightMove(from, to);
-            case 'B': return this.isValidBishopMove(from, to);
-            case 'T': return this.isValidTurretMove(from, to);
-            case 'F': return false; // Flags can't move on their own
-            default: return false;
-        }
-    }
-
-
     isValidPawnMove(from, to) {
         const piece = this.board[from.row][from.col];
         const rowDiff = to.row - from.row;
@@ -275,8 +238,6 @@ class CTFChess {
 
         return false;  // Return false if the move doesn't meet any valid conditions
     }
-
-
 
     isValidRookMove(from, to) {
         if (from.row !== to.row && from.col !== to.col) return false;
