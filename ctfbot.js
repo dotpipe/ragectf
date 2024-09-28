@@ -59,7 +59,7 @@ class CTFBot {
             score += 3500;
         }
         // Prioritize moving towards the opponent's flag
-        const opponentFlagPos = this.game.flags[this.getOpponentColor()].position;
+        const opponentFlagPos = (this.game.flags[this.getOpponentColor()].position) ? this.game.flags[this.getOpponentColor()].position : this.game.defaultFlags[this.getOpponentColor()].position;
         const distanceToFlag = Math.abs(to.row - opponentFlagPos[0]) + Math.abs(to.col - opponentFlagPos[1]);
         score += (14 - distanceToFlag) * 10;
 

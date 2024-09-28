@@ -5,6 +5,9 @@ class CTFChess {
         this.flags = {
             'White': { position: [7, 4], captured: false },
             'Black': { position: [0, 3], captured: false }
+        };this.defaultFlags = {
+            'White': { position: [7, 4], captured: false },
+            'Black': { position: [0, 3], captured: false }
         };
         this.baseStations = {
             'White': [7, 4],
@@ -58,18 +61,33 @@ class CTFChess {
 
         const movingPiece = this.board[from.row][from.col];
         const targetPiece = this.board[to.row][to.col];
+        if (movingPiece.type === 'F' && targetPiece && movingPiece.color != targetPiece.color && targetPiece.type === 'F') {
+            // Swap flag positions
+            this.flags[movingPiece.color].position = [to.row, to.col];
+            this.flags[targetPiece.color].position = this.defaultFlags[movingPiece.color].position;
 
-        if ((targetPiece && targetPiece.type === 'K') || (movingPiece && movingPiece.type === 'K')) {
+            // Update board
+            this.board[to.row][to.col] = movingPiece;
+            this.board[from.row][from.col] = null;
+        } else if (movingPiece.type === 'F' && targetPiece && movingPiece.color === targetPiece.color && targetPiece.type === 'F') {
+            // Swap flag positions
+            this.flags[movingPiece.color].position = [to.row, to.col];
+            this.flags[targetPiece.color].position = [from.row, from.col];
+
+            // Update board
+            this.board[to.row][to.col] = movingPiece;
+            this.board[from.row][from.col] = null;
+        } else if ((targetPiece && targetPiece.type === 'K') || (movingPiece && movingPiece.type === 'K')) {
             if (this.hasFlag(movingPiece)) {
                 this.score[this.currentPlayer]++;
                 this.resetGame();
                 return false;
             }
-            console.log("Invalid move: Cannot capture the opponent's safety zone.");
             this.selectedPiece = null;
             this.moveTo = null;
             return false;
         }
+
         // Handle flag capture
         if (targetPiece && this.hasFlag(targetPiece)) {
             movingPiece.hasFlag = true;
@@ -79,7 +97,7 @@ class CTFChess {
         if (this.flags[this.currentPlayer].captured) {
             this.flags[this.currentPlayer].position = null;
         }
-        
+
         // Move the piece
         this.board[to.row][to.col] = movingPiece;
         this.board[from.row][from.col] = null;
@@ -129,7 +147,7 @@ class CTFChess {
                 td.dataset.row = row;
                 td.dataset.col = col;
                 const piece = this.board[row][col];
-                if (row%2 === col%2) {
+                if (row % 2 === col % 2) {
                     td.classList.add('white');
                 } else {
                     td.classList.add('beige');
