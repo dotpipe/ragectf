@@ -103,9 +103,9 @@ class CTFChess {
 
     checkFlagReturn(piece, position) {
         if (piece.hasFlag) {
-            const baseStation = this.baseStations[piece.color].position;
+            const baseStation = this.baseStations[this.currentPlayer].position;
             console.log('Checking flag return:', position, 'Base station:', baseStation);
-            if (position.row === baseStation[0] && position.col === baseStation[1] && this.flags[this.getOpponentColor()].captured) {
+            if (position.row === baseStation.position[0] && position.col === baseStation.position[1]) {
                 this.score[this.currentPlayer] += 3;
                 piece.hasFlag = false;
                 const opponentColor = this.getOpponentColor();
@@ -113,7 +113,7 @@ class CTFChess {
                 
                 const flagPosition = this.flags[opponentColor].position;
                 this.board[flagPosition[0]][flagPosition[1]] = { type: 'F', color: opponentColor };
-                this.initializeBaseStations();
+                
                 console.log(`${this.currentPlayer} scored 3 points! Flag returned to original position.`);
                 return true;
             }
@@ -294,16 +294,10 @@ class CTFChess {
                     td.classList.add('beige');
                 }
                 if (piece) {
-                    // Check if it's a flag at its origin position
-                    if (piece.type === 'F' &&
-                        ((piece.color === 'White' && row === 7 && col === 4) ||
-                            (piece.color === 'Black' && row === 0 && col === 3))) {
-                        // Flag is at its origin, keep it in position
-                        td.textContent = this.getPieceSymbol(piece, piece.color);
-                        td.classList.add(piece.color.toLowerCase());
-                    } else {
-                        td.textContent = this.getPieceSymbol(piece, piece.color);
-                        td.classList.add(piece.color.toLowerCase());
+                    td.textContent = this.getPieceSymbol(piece, piece.color);
+                    td.classList.add(piece.color.toLowerCase());
+                    if (piece.hasFlag) {
+                        td.classList.add('glow');  // Add glow effect for flag carriers
                     }
                 }
                 td.addEventListener('click', handleCellClick);

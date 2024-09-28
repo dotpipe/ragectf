@@ -8,6 +8,20 @@ body {
     background-color: #f0f0f0;
 }
 
+.glow {
+    box-shadow: 0 0 10px 5px greenyellow;
+    animation: glowing 1.5s infinite alternate;
+}
+
+@keyframes glowing {
+    from {
+        box-shadow: 0 0 10px 5px grey;
+    }
+    to {
+        box-shadow: 0 0 20px 10px greenyellow;
+    }
+}
+
 #game-container {
     text-align: center;
     background-color: white;
