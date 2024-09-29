@@ -106,26 +106,17 @@ class CTFChess {
 
     checkFlagReturn(piece, position) {
         if (piece.hasFlag) {
-            const baseStation = this.baseStations[this.currentPlayer];
-            console.log('Checking flag return:', position, 'Base station:', baseStation);
-            if (position.row === baseStation.position[0] && position.col === baseStation.position[1]) {
+            const kingRow = this.currentPlayer === 'White' ? 7 : 0;
+            const kingCol = this.currentPlayer === 'White' ? 3 : 4;
+            if (this.moveTo.row === kingRow && this.moveTo.col === kingCol) {
                 this.score[this.currentPlayer] += 3;
-                piece.hasFlag = false;
-                const opponentColor = this.getOpponentColor();
-                this.flags[opponentColor].captured = false;
-                
-                const flagPosition = this.flags[opponentColor].position;
-                if (this.flags[opponentColor].captured && opponentColor === 'White') {
-                    this.board[flagPosition[0]][flagPosition[1]] = { type: 'F', color: opponentColor };
-                }
-                else this.board[flagPosition[0]][flagPosition[1]] = { type: 'W', color: opponentColor };
-                
-                console.log(`${this.currentPlayer} scored 3 points! Flag returned to original position.`);
+                this.resetGame();
                 return true;
             }
         }
         return false;
     }
+
     switchPlayer() {
         this.currentPlayer = this.getOpponentColor();
     }
