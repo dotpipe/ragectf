@@ -63,6 +63,15 @@ class CTFAI {
         const movingPiece = this.game.board[from.row][from.col];
         const targetPiece = this.game.board[to.row][to.col];
 
+        if (targetPiece && targetPiece.color === this.color) {
+            return 0;  // Penalize capturing own pieces
+        }
+        if (movingPiece.type === 'F') {
+            score += 10000;  // Bonus for moving the flag
+        }
+        if (!targetPiece) {
+            score += 10;  // Bonus for moving to an empty square
+        }
         // Prioritize capturing the opponent's flag
         if (targetPiece && targetPiece.color !== this.color && targetPiece.type === 'F') {
             score += 2000;
@@ -71,7 +80,7 @@ class CTFAI {
         // Prioritize moving towards the opponent's flag
         const opponentFlagPos = this.game.flags[this.getOpponentColor()].position;
         const distanceToFlag = Math.abs(to.row - opponentFlagPos[0]) + Math.abs(to.col - opponentFlagPos[1]);
-        score += (14 - distanceToFlag) * 15;
+        score += (14 - distanceToFlag) * 45;
 
         // Prioritize capturing opponent pieces
         if (targetPiece && targetPiece.color !== this.color) {

@@ -5,6 +5,8 @@ class CTFChess {
         this.flags = this.initializeFlags();
         this.baseStations = this.initializeBaseStations();
         this.score = { 'White': 0, 'Black': 0 };
+        this.selectedPiece = null;
+        this.moveTo = null;
     }
 
     initializeBoard() {
@@ -73,7 +75,7 @@ class CTFChess {
         // Ensure the piece type hasn't changed
         movingPiece.type = originalType;
     
-        if (this.checkFlagReturn(movingPiece, to)) {
+        if (this.checkFlagReturn(from, to)) {
             
             return true;
         }
@@ -81,7 +83,6 @@ class CTFChess {
         this.switchPlayer();
         return true;
     }
-
 
     promotePawn(piece, to) {
         if (piece.type === 'P' && (to.row == 7 || to.row == 0)) {
@@ -104,17 +105,15 @@ class CTFChess {
         this.board[from.row][from.col] = null;
     }
 
-    checkFlagReturn(piece, position) {
-        if (piece.hasFlag) {
-            const kingRow = this.currentPlayer === 'White' ? 7 : 0;
-            const kingCol = this.currentPlayer === 'White' ? 3 : 4;
-            if (this.moveTo.row === kingRow && this.moveTo.col === kingCol) {
+    checkFlagReturn(from, to) {
+        if (this.hasFlag(this.board[from.row][from.col])) {
+            const baseStation = this.baseStations[this.currentPlayer].position;
+            if (to.row === baseStation[0] && to.col === baseStation[1]) {
                 this.score[this.currentPlayer] += 3;
                 this.resetGame();
                 return true;
             }
         }
-        return false;
     }
 
     switchPlayer() {
@@ -122,7 +121,7 @@ class CTFChess {
     }
 
     isValidMove(from, to) {
-        const piece = this.board[from.row]?.[from.col];
+        const piece = this.board[from.row][from.col];
         if (!piece || piece.color !== this.currentPlayer) return false;
     
         if (from.row === to.row && from.col === to.col) return false;
@@ -229,7 +228,7 @@ class CTFChess {
     }
 
     hasFlag(piece) {
-        return piece.type === 'F' || piece.type === 'W' || piece.hasFlag;
+        return piece && (piece.type === 'F' || piece.type === 'W' || piece.hasFlag);
     }
 
     getOpponentColor() {
