@@ -3,10 +3,10 @@ class CTFAI {
         this.game = game;
         this.color = color;
         this.difficultyLevels = {
-            easy: 1,
+            easy: 3,
             medium: 2,
-            hard: 3,
-            extreme: 4
+            hard: 1,
+            extreme: 1
         };
     }
 
@@ -63,25 +63,35 @@ class CTFAI {
         const movingPiece = this.game.board[from.row][from.col];
         const targetPiece = this.game.board[to.row][to.col];
 
-        if (movingPiece.hasFlag) {
-            const basePos = this.game.baseStations[this.color];
-            const distanceToBase = Math.abs(to.row - basePos[0]) + Math.abs(to.col - basePos[1]);
-            score += 1000 - (distanceToBase * 100);
-        }
-
-        if (targetPiece && targetPiece.color !== this.color) {
-            score += this.getPieceValue(targetPiece.type);
-        }
-
-        if (targetPiece && (targetPiece.type === 'F' || targetPiece.type === 'W')) {
+        // Prioritize capturing the opponent's flag
+        if (targetPiece && targetPiece.color !== this.color && targetPiece.type === 'F') {
             score += 2000;
+        }
+
+        // Prioritize moving towards the opponent's flag
+        const opponentFlagPos = this.game.flags[this.getOpponentColor()].position;
+        const distanceToFlag = Math.abs(to.row - opponentFlagPos[0]) + Math.abs(to.col - opponentFlagPos[1]);
+        score += (14 - distanceToFlag) * 15;
+
+        // Prioritize capturing opponent pieces
+        if (targetPiece && targetPiece.color !== this.color) {
+            score += this.getPieceValue(targetPiece.type) * 3;
+        }
+
+        // Bonus for moving pieces forward
+        const forwardDirection = this.color === 'White' ? -1 : 1;
+        score += (to.row - from.row) * forwardDirection * 5;
+
+        // Bonus for controlling the center
+        if ((to.row === 3 || to.row === 4) && (to.col === 3 || to.col === 4)) {
+            score += 10;
         }
 
         return score;
     }
 
     getPieceValue(pieceType) {
-        const values = { 'P': 10, 'R': 50, 'N': 30, 'B': 30, 'T': 40, 'F': 2000, 'W': 1000 };
+        const values = { 'P': 10, 'R': 50, 'N': 30, 'B': 30, 'F': 2000, 'W': 1000 };
         return values[pieceType] || 0;
     }
 

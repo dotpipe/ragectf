@@ -41,7 +41,7 @@
 
                 if (game.currentPlayer === 'Black') {
                     setTimeout(() => {
-                        bot.makeMove();
+                        ai.makeMove();
                         game.print_board();
                         updateScoreDisplay();
                     }, 500);
@@ -66,7 +66,6 @@
             updateScoreDisplay();
         });
 
-        game.print_board();
     </script>
 </body>
 
