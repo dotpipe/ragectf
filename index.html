@@ -23,28 +23,31 @@
     </div>
 
     <script src="chess.js"></script>
-    <!-- <script src="ctfbot.js"></script> -->
-    <script src="movecache.js"></script>
     <script src="ctfai.js"></script>
     
     <script>
         const game = new CTFChess();
         const ai = new CTFAI(game, 'Black');
-
+        let selectedPiece = null;
+        let movingTo = null;
+        let domSelectedPiece = null;
         function handleCellClick(event) {
             const row = parseInt(event.target.dataset.row);
             const col = parseInt(event.target.dataset.col);
-            if (game.selectedPiece === null) {
-                game.selectedPiece = { row, col };
-            } else if (game.moveTo === null) {
-                game.moveTo = { row, col };
+            if (selectedPiece === null) {
+                selectedPiece = { row, col };
+                domSelectedPiece = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                domSelectedPiece.classList.toggle('active');
+            } else if (movingTo === null) {
+                movingTo = { row, col };
             }
             else {
-                game.makeMove(game.selectedPiece, game.moveTo);
+                game.makeMove(selectedPiece, movingTo);
                 game.print_board();
                 updateScoreDisplay();
-                game.selectedPiece = null;
-                game.moveTo = null;
+                selectedPiece = null;
+                movingTo = null;
+                domSelectedPiece.classList.toggle('active');
                 if (game.currentPlayer === 'Black') {
                     setTimeout(() => {
                         ai.makeMove();

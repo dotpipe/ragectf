@@ -49,14 +49,14 @@ class CTFChess {
 
     initializeFlags() {
         return {
-            'White': { position: [7, 3], captured: false },
+            'White': { position: [7, 4], captured: false },
             'Black': { position: [0, 4], captured: false }
         };
     }
 
     initializeBaseStations() {
         return {
-            'White': { position: [7, 4], color: 'White' },
+            'White': { position: [7, 3], color: 'White' },
             'Black': { position: [0, 3], color: 'Black' }
         };
     }
