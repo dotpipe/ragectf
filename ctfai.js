@@ -8,6 +8,8 @@ class CTFAI {
             hard: 1,
             extreme: 1
         };
+        this.positionRatings = new Map();
+        this.learningRate = 0.1;
     }
 
     makeMove() {
@@ -15,6 +17,7 @@ class CTFAI {
         const selectedMove = this.selectMoveBasedOnDifficulty(moves);
         if (selectedMove) {
             this.game.makeMove(selectedMove.from, selectedMove.to);
+            this.updatePositionRatings(selectedMove);
             return selectedMove;
         }
         return null;
@@ -26,10 +29,34 @@ class CTFAI {
     }
 
     selectMoveBasedOnDifficulty(moves) {
-        const difficulty = this.getCurrentDifficulty();
-        const sortedMoves = moves.sort((a, b) => b.score - a.score);
-        const index = Math.floor(Math.random() * difficulty);
-        return sortedMoves[index] || sortedMoves[0];
+        const forwardDirection = this.color === 'White' ? -1 : 1;
+        moves.sort((a, b) => {
+            const aForwardScore = (a.to.row - a.from.row) * forwardDirection;
+            const bForwardScore = (b.to.row - b.from.row) * forwardDirection;
+            if (aForwardScore !== bForwardScore) {
+                return bForwardScore - aForwardScore;
+            }
+            return b.score - a.score;
+        });
+        return moves[0];
+    }
+
+    calculateForesightScore(move) {
+        const immediateScore = this.evaluateMove(move.from, move.to);
+        const futurePositionScore = this.getPositionRating(move.to);
+        return immediateScore + futurePositionScore;
+    }
+
+    getPositionRating(position) {
+        const key = `${position.row},${position.col}`;
+        return this.positionRatings.get(key) || 0;
+    }
+
+    updatePositionRatings(move) {
+        const key = `${move.to.row},${move.to.col}`;
+        const currentRating = this.getPositionRating(move.to);
+        const newRating = currentRating + this.learningRate * (this.evaluateMove(move.from, move.to)); // - currentRating);
+        this.positionRatings.set(key, newRating);
     }
 
     getCurrentDifficulty() {
@@ -63,40 +90,81 @@ class CTFAI {
         const movingPiece = this.game.board[from.row][from.col];
         const targetPiece = this.game.board[to.row][to.col];
 
-        if (targetPiece && targetPiece.color === this.color) {
-            return 0;  // Penalize capturing own pieces
+        if (movingPiece === null || targetPiece === null) return false;
+        
+        if (targetPiece && targetPiece.color != this.color && targetPiece.hasFlag) {
+            score += 100000;
         }
+        
         if (movingPiece.type === 'F') {
-            score += 10000;  // Bonus for moving the flag
+            score += 40000;  // Bonus for moving the flag
         }
-        if (!targetPiece) {
-            score += 10;  // Bonus for moving to an empty square
-        }
+
         // Prioritize capturing the opponent's flag
         if (targetPiece && targetPiece.color !== this.color && targetPiece.type === 'F') {
-            score += 2000;
+            score += 200;
+        }
+
+        // Prioritize capturing opponent's pieces
+        if (movingPiece.hasFlag) {
+            const pos = this.game.flags[this.getOpponentColor()].position;
+            if (to.row === pos[0] && to.col === pos[1] && this.game.flags[this.color].captured)
+                score += 50000;
         }
 
         // Prioritize moving towards the opponent's flag
         const opponentFlagPos = this.game.flags[this.getOpponentColor()].position;
-        const distanceToFlag = Math.abs(to.row - opponentFlagPos[0]) + Math.abs(to.col - opponentFlagPos[1]);
-        score += (14 - distanceToFlag) * 45;
+        const distanceToFlag = Math.abs(to.col - opponentFlagPos[0]) + Math.abs(to.row - opponentFlagPos[1]);
+        score += (7 - distanceToFlag) * 150;
 
         // Prioritize capturing opponent pieces
         if (targetPiece && targetPiece.color !== this.color) {
-            score += this.getPieceValue(targetPiece.type) * 3;
+            score += this.getPieceValue(targetPiece.type) * 300;
         }
 
         // Bonus for moving pieces forward
         const forwardDirection = this.color === 'White' ? -1 : 1;
-        score += (to.row - from.row) * forwardDirection * 5;
+        score += (to.row - from.row) * forwardDirection * 150;
 
         // Bonus for controlling the center
         if ((to.row === 3 || to.row === 4) && (to.col === 3 || to.col === 4)) {
             score += 10;
         }
 
+        // Add a bonus for moving away from white pieces
+        score += this.calculateDistanceBonus(from, to);
+
+        // Add a huge bonus for returning the flag to base
+        if (movingPiece.hasFlag) {
+            const baseStation = this.game.baseStations[this.color];
+            const currentDistanceToBase = Math.abs(from.row - baseStation[0]) + Math.abs(from.col - baseStation[1]);
+            const newDistanceToBase = Math.abs(to.row - baseStation[0]) + Math.abs(to.col - baseStation[1]);
+            score += Math.abs(currentDistanceToBase - newDistanceToBase) * 200;
+        }
+
+        if (movingPiece.type === 'N' && to.row === this.game.flags[this.getOpponentColor()].position[0] && to.col === this.game.flags[this.getOpponentColor()].position[1]) {
+            const opponentFlagPos = this.game.flags[this.getOpponentColor()].position;
+            const currentDistanceToFlag = Math.max(Math.abs(from.row - opponentFlagPos[0]), Math.abs(from.col - opponentFlagPos[1]));
+            const newDistanceToFlag = Math.max(Math.abs(to.row - opponentFlagPos[0]), Math.abs(to.col - opponentFlagPos[1]));
+            score += Math.abs(currentDistanceToFlag - newDistanceToFlag) * 1000;
+        }
+
         return score;
+    }
+    
+    calculateDistanceBonus(from, to) {
+        let bonus = 0;
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this.game.board[row][col];
+                if (piece && piece.color === 'White') {
+                    const oldDistance = Math.abs(from.row - row) + Math.abs(from.col - col);
+                    const newDistance = Math.abs(to.row - row) + Math.abs(to.col - col);
+                    bonus += newDistance - oldDistance;
+                }
+            }
+        }
+        return bonus * 500; // Adjust the multiplier as needed
     }
 
     getPieceValue(pieceType) {
@@ -106,5 +174,16 @@ class CTFAI {
 
     getOpponentColor() {
         return this.color === 'White' ? 'Black' : 'White';
+    }
+
+    saveLearnedData() {
+        localStorage.setItem('ctfaiPositionRatings', JSON.stringify(Array.from(this.positionRatings.entries())));
+    }
+
+    loadLearnedData() {
+        const savedData = localStorage.getItem('ctfaiPositionRatings');
+        if (savedData) {
+            this.positionRatings = new Map(JSON.parse(savedData));
+        }
     }
 }

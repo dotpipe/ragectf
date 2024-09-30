@@ -50,14 +50,14 @@ class CTFChess {
     initializeFlags() {
         return {
             'White': { position: [7, 4], captured: false },
-            'Black': { position: [0, 4], captured: false }
+            'Black': { position: [0, 3], captured: false }
         };
     }
 
     initializeBaseStations() {
         return {
             'White': { position: [7, 3], color: 'White' },
-            'Black': { position: [0, 3], color: 'Black' }
+            'Black': { position: [0, 4], color: 'Black' }
         };
     }
 
@@ -107,10 +107,9 @@ class CTFChess {
 
     checkFlagReturn(from, to) {
         if (this.hasFlag(this.board[from.row][from.col])) {
-            const baseStation = this.baseStations[this.currentPlayer].position;
+            const baseStation = this.baseStations[this.getOpponentColor()].position;
             if (to.row === baseStation[0] && to.col === baseStation[1]) {
                 this.score[this.currentPlayer] += 3;
-                this.resetGame();
                 return true;
             }
         }
@@ -144,8 +143,7 @@ class CTFChess {
             'P': this.isValidPawnMove,
             'R': this.isValidRookMove,
             'N': this.isValidKnightMove,
-            'B': this.isValidBishopMove,
-            'T': this.isValidTurretMove
+            'B': this.isValidBishopMove
         };
     
         return moveValidators[piece.type]?.call(this, from, to) ?? false;
