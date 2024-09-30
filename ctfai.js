@@ -102,12 +102,12 @@ class CTFAI {
 
         // Prioritize capturing the opponent's flag
         if (targetPiece && targetPiece.color !== this.color && targetPiece.type === 'F') {
-            score += 200;
+            score += 2000;
         }
 
         // Prioritize capturing opponent's pieces
         if (movingPiece.hasFlag) {
-            const pos = this.game.flags[this.getOpponentColor()].position;
+            const pos = this.game.baseStation[this.getOpponentColor()].position;
             if (to.row === pos[0] && to.col === pos[1] && this.game.flags[this.color].captured)
                 score += 50000;
         }
@@ -136,7 +136,7 @@ class CTFAI {
 
         // Add a huge bonus for returning the flag to base
         if (movingPiece.hasFlag) {
-            const baseStation = this.game.baseStations[this.color];
+            const baseStation = this.game.baseStations[this.color].position;
             const currentDistanceToBase = Math.abs(from.row - baseStation[0]) + Math.abs(from.col - baseStation[1]);
             const newDistanceToBase = Math.abs(to.row - baseStation[0]) + Math.abs(to.col - baseStation[1]);
             score += Math.abs(currentDistanceToBase - newDistanceToBase) * 200;
