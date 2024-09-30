@@ -67,25 +67,17 @@ class CTFChess {
         const movingPiece = this.board[from.row][from.col];
         const targetPiece = this.board[to.row][to.col];
     
-        const originalType = movingPiece.type;
         this.handleFlagCapture(movingPiece, targetPiece);
+        this.checkFlagReturn(movingPiece, targetPiece);
         this.promotePawn(movingPiece, to);
         this.updateBoard(from, to, movingPiece);
         
-        // Ensure the piece type hasn't changed
-        movingPiece.type = originalType;
-    
-        if (this.checkFlagReturn(from, to)) {
-            
-            return true;
-        }
-    
         this.switchPlayer();
         return true;
     }
 
     promotePawn(piece, to) {
-        if (piece.type === 'P' && (to.row == 7 || to.row == 0)) {
+        if (piece.type === 'P' && (to.row === 0 || to.row === 7)) {
             const promotionPieces = ['N', 'B', 'R'];
             piece.type = promotionPieces[Math.floor(Math.random() * promotionPieces.length)];
             this.print_board();
@@ -106,13 +98,15 @@ class CTFChess {
     }
 
     checkFlagReturn(from, to) {
-        if (this.hasFlag(this.board[from.row][from.col])) {
-            const baseStation = this.baseStations[this.getOpponentColor()].position;
+        if (from === null || to === null) return;
+        if (from.hasFlag) {
+            const baseStation = this.baseStations[from.color].position;
             if (to.row === baseStation[0] && to.col === baseStation[1]) {
                 this.score[this.currentPlayer] += 3;
                 return true;
             }
         }
+        return true;
     }
 
     switchPlayer() {
@@ -129,15 +123,15 @@ class CTFChess {
         if (targetPiece && targetPiece.immovable && targetPiece.type !== 'K') return false;
     
         // Allow flag carriers to move towards their base station
-        if (piece.hasFlag) {
-            const baseStation = this.baseStations[piece.color].position;
-            if (to.row === baseStation[0] && to.col === baseStation[1]) {
-                this.score[this.currentPlayer] += 3;
-                piece.hasFlag = false;
-                this.initializeFlags();
-                return true;
-            }
-        }
+        // if (piece.hasFlag) {
+        //     const baseStation = this.baseStations[piece.color].position;
+        //     if (to.row === baseStation[0] && to.col === baseStation[1]) {
+        //         this.score[this.currentPlayer] += 3;
+        //         piece.hasFlag = false;
+        //         this.initializeFlags();
+        //         return true;
+        //     }
+        // }
     
         const moveValidators = {
             'P': this.isValidPawnMove,
@@ -177,11 +171,8 @@ class CTFChess {
 
         // Reach opposite side and return flag
         const lastRow = piece.color === 'White' ? 0 : 7;
-        if (from.row === lastRow && piece.hasFlag) {
-            const baseStation = this.baseStations[piece.color];
-            if (to.row === baseStation[0] && to.col === baseStation[1]) {
-                return true;
-            }
+        if (to.row === lastRow && (this.color === 'White' || this.color === 'Black')) {
+            this.promotePawn(piece, to);
         }
 
         return false;

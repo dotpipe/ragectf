@@ -107,7 +107,7 @@ class CTFAI {
 
         // Prioritize capturing opponent's pieces
         if (movingPiece.hasFlag) {
-            const pos = this.game.baseStation[this.getOpponentColor()].position;
+            const pos = this.game.baseStations[this.getOpponentColor()].position;
             if (to.row === pos[0] && to.col === pos[1] && this.game.flags[this.color].captured)
                 score += 50000;
         }
