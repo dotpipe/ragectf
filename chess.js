@@ -66,12 +66,12 @@ class CTFChess {
 
         const movingPiece = this.board[from.row][from.col];
         const targetPiece = this.board[to.row][to.col];
-    
+
         this.handleFlagCapture(movingPiece, targetPiece);
         this.checkFlagReturn(movingPiece, targetPiece);
         this.promotePawn(movingPiece, to);
         this.updateBoard(from, to, movingPiece);
-        
+
         this.switchPlayer();
         return true;
     }
@@ -98,16 +98,27 @@ class CTFChess {
     }
 
     checkFlagReturn(from, to) {
-        if (from === null || to === null) return;
-        if (from.hasFlag) {
-            const baseStation = this.baseStations[from.color].position;
-            if (to.row === baseStation[0] && to.col === baseStation[1]) {
+        if (from.hasFlag && to) {
+            const opponentBaseStation = this.baseStations[this.currentPlayer].position;
+            const ownBaseStation = this.baseStations[this.getOpponentColor()].position;
+
+            // Returning own flag to own base
+            if (to.row === ownBaseStation[0] && to.col === ownBaseStation[1] && this.flags[this.currentPlayer].captured) {
+                this.flags[this.currentPlayer].captured = false;
+                from.hasFlag = false;
+                return true;
+            }
+
+            // Bringing opponent's flag to own base
+            if (to.row === opponentBaseStation[0] && to.col === opponentBaseStation[1] && this.flags[this.getOpponentColor()].captured) {
                 this.score[this.currentPlayer] += 3;
+                this.resetGame();
                 return true;
             }
         }
-        return true;
+        return false;
     }
+
 
     switchPlayer() {
         this.currentPlayer = this.getOpponentColor();
@@ -116,12 +127,12 @@ class CTFChess {
     isValidMove(from, to) {
         const piece = this.board[from.row][from.col];
         if (!piece || piece.color !== this.currentPlayer) return false;
-    
+
         if (from.row === to.row && from.col === to.col) return false;
-        
+
         const targetPiece = this.board[to.row][to.col];
         if (targetPiece && targetPiece.immovable && targetPiece.type !== 'K') return false;
-    
+
         // Allow flag carriers to move towards their base station
         // if (piece.hasFlag) {
         //     const baseStation = this.baseStations[piece.color].position;
@@ -132,14 +143,14 @@ class CTFChess {
         //         return true;
         //     }
         // }
-    
+
         const moveValidators = {
             'P': this.isValidPawnMove,
             'R': this.isValidRookMove,
             'N': this.isValidKnightMove,
             'B': this.isValidBishopMove
         };
-    
+
         return moveValidators[piece.type]?.call(this, from, to) ?? false;
     }
 
@@ -193,12 +204,6 @@ class CTFChess {
     isValidBishopMove(from, to) {
         if (Math.abs(to.row - from.row) !== Math.abs(to.col - from.col)) return false;
         return this.isPathClear(from, to);
-    }
-
-    isValidTurretMove(from, to) {
-        const rowDiff = Math.abs(to.row - from.row);
-        const colDiff = Math.abs(to.col - from.col);
-        return (rowDiff <= 1 && colDiff <= 1 && (rowDiff + colDiff > 0));
     }
 
     isPathClear(from, to) {
@@ -291,5 +296,11 @@ class CTFChess {
             table.appendChild(tr);
         }
         chessboard.appendChild(table);
+    }
+    
+    reinstateFlag(color) {
+        const flagPosition = color === 'White' ? [7, 4] : [0, 3];
+        this.board[flagPosition[0]][flagPosition[1]] = { type: 'F', color: color };
+        this.flags[color] = { position: flagPosition, captured: false };
     }
 }

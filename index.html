@@ -1,36 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CTF Chess</title>
+    <title>CTF Chess Game</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
     <div id="game-container">
         <h1>CTF Chess</h1>
-        <div id="score-display">
-            <span>White: <span id="white-score">0</span></span>
-            <span>Black: <span id="black-score">0</span></span>
+        <div id="mode-selection">
+            <button id="play-bot">Play Against Bot</button>
+            <button id="play-human">Play Against Human</button>
         </div>
-        <table id="chessboard"></table>
-        <div id="controls">
-            <button id="start-game">Start Game</button>
-            <button id="reset-game">Reset Game</button>
+        <div id="chessboard"></div>
+        <div id="game-info">
+            <p>Current Player: <span id="current-player"></span></p>
+            <p>Score: White <span id="white-score">0</span> - Black <span id="black-score">0</span></p>
+        </div>
+        <div id="chat-container" style="display: none;">
+            <div id="chat-messages"></div>
+            <input type="text" id="chat-input" placeholder="Type a message...">
+            <button id="send-chat">Send</button>
         </div>
     </div>
-
     <script src="chess.js"></script>
-    <script src="ctfai.js"></script>
-    
+    <script src="movecache.js"></script>
+    <script src="bot.js"></script>
+    <!-- <script src="ctfai.js"></script> -->
     <script>
-        const game = new CTFChess();
-        const ai = new CTFAI(game, 'Black');
+        let game, bot;
+        const playBotButton = document.getElementById('play-bot');
+        const playHumanButton = document.getElementById('play-human');
+        const chatContainer = document.getElementById('chat-container');
         let selectedPiece = null;
         let movingTo = null;
-        let domSelectedPiece = null;
+        playBotButton.addEventListener('click', () => {
+            game = new CTFChess();
+            bot = new CTFAI(game, 'Black');
+            initializeGame('bot');
+        });
+
+        playHumanButton.addEventListener('click', () => {
+            game = new CTFChess();
+            initializeGame('human');
+            chatContainer.style.display = 'block';
+        });
+
+        function initializeGame(mode) {
+            document.getElementById('mode-selection').style.display = 'none';
+            game.print_board();
+            updateGameInfo();
+
+            const cells = document.querySelectorAll('#chessboard td');
+            cells.forEach(cell => {
+                cell.addEventListener('click', () => {
+                    if (!game.selectedPiece) {
+                        game.selectedPiece = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
+                    }
+                    else if (game.selectedPiece && !game.moveTo) {
+                        game.moveTo = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
+                    }
+                    if (game.selectedPiece && game.moveTo && game.validate_move(cell.dataset.row, cell.dataset.col)) {
+                        game.makeMove();
+                        game.print_board();
+                        updateGameInfo();
+                        if (mode === 'bot' && game.currentPlayer === 'Black') {
+                            setTimeout(() => {
+                                const botMove = bot.makeMove();
+                                game.selectedPiece = { row: botMove.from.row, col: botMove.from.col };
+                                game.moveTo = { row: botMove.to.row, col: botMove.to.col };
+                                game.makeMove();
+                                game.print_board();
+                                updateGameInfo();
+                            }, 500);
+                        }
+                    }
+                });
+            });
+        }
+
         function handleCellClick(event) {
             const row = parseInt(event.target.dataset.row);
             const col = parseInt(event.target.dataset.col);
@@ -44,38 +93,25 @@
             else {
                 game.makeMove(selectedPiece, movingTo);
                 game.print_board();
-                updateScoreDisplay();
+                updateGameInfo();
                 selectedPiece = null;
                 movingTo = null;
                 domSelectedPiece.classList.toggle('active');
                 if (game.currentPlayer === 'Black') {
                     setTimeout(() => {
-                        ai.makeMove();
+                        bot.makeMove();
                         game.print_board();
-                        updateScoreDisplay();
+                        updateGameInfo();
                     }, 500);
                 }
             }
         }
 
-        function updateScoreDisplay() {
-            document.getElementById('white-score').textContent = game.score.White;
-            document.getElementById('black-score').textContent = game.score.Black;
+        function updateGameInfo() {
+            document.getElementById('current-player').textContent = game.currentPlayer;
+            document.getElementById('white-score').textContent = game.score['White'];
+            document.getElementById('black-score').textContent = game.score['Black'];
         }
-
-        document.getElementById('start-game').addEventListener('click', () => {
-            game.resetGame();
-            game.print_board();
-            updateScoreDisplay();
-        });
-
-        document.getElementById('reset-game').addEventListener('click', () => {
-            game.resetGame();
-            game.print_board();
-            updateScoreDisplay();
-        });
-
     </script>
 </body>
-
 </html>
